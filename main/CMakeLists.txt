@@ -1,8 +1,12 @@
+set(EMBEDDED_HTML assets/index.html)
+
 idf_component_register(
     SRCS
         "main.cpp"
         "src/WifiManager.cpp"
+        "src/WebSocketServer.cpp"
         "src/Heartbeat.cpp"
+        "src/SensorFusionSim.cpp"
     INCLUDE_DIRS
         "inc"
     PRIV_REQUIRES
@@ -11,4 +15,8 @@ idf_component_register(
         driver
         esp_event
         esp_netif
+        fatfs
+        spiffs
+        esp_http_server
+    EMBED_FILES index.html
 )

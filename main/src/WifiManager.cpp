@@ -91,3 +91,26 @@ void WifiManager::startSoftAP()
     ESP_LOGI(TAG, "SoftAP started. SSID:%s password:%s channel:%d",
              EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
 }
+
+void WifiManager::startStation()
+{
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    esp_netif_create_default_wifi_sta();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    wifi_config_t wifi_config = {};
+    strncpy((char *)wifi_config.sta.ssid, "doobadoo", sizeof(wifi_config.sta.ssid));
+    strncpy((char *)wifi_config.sta.password, "Ekebana.2020-tomato", sizeof(wifi_config.sta.password));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(TAG, "Connecting to SSID:%s...", "doobadoo");
+    ESP_ERROR_CHECK(esp_wifi_connect());
+}

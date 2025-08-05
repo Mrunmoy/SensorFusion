@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sensor Fusion Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+    }
+    #cube {
+      width: 100px;
+      height: 100px;
+      margin: 30px auto;
+      background: gray;
+      transition: background 0.5s;
+    }
+    #values {
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sensor Fusion Data</h1>
+  <div id="cube"></div>
+  <div id="values">
+    <p><strong>Yaw:</strong> <span id="yaw">--</span></p>
+    <p><strong>Pitch:</strong> <span id="pitch">--</span></p>
+    <p><strong>Roll:</strong> <span id="roll">--</span></p>
+    <p><strong>Air Quality:</strong> <span id="air">--</span></p>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const yaw = document.getElementById("yaw");
+        const pitch = document.getElementById("pitch");
+        const roll = document.getElementById("roll");
+        const air = document.getElementById("air");
+        const cube = document.getElementById("cube");
+
+        yaw.textContent = data.yaw;
+        pitch.textContent = data.pitch;
+        roll.textContent = data.roll;
+        air.textContent = data.air;
+
+        // Color logic based on numerical air quality
+        const aqi = parseInt(data.air);
+        if (aqi < 50) {
+          cube.style.background = "green";
+        } else if (aqi < 100) {
+          cube.style.background = "yellow";
+        } else {
+          cube.style.background = "red";
+        }
+      } catch (e) {
+        console.error("Invalid JSON:", event.data);
+      }
+    };
+
+    ws.onopen = () => console.log("WebSocket connected!");
+    ws.onclose = () => console.log("WebSocket disconnected.");
+  </script>
+</body>
+</html>

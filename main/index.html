@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sensor Fusion Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    #overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div>Temp: <span id="temp">--</span>°C</div>
+    <div>Humidity: <span id="humidity">--</span>%</div>
+    <div>Air Quality: <span id="airq">--</span></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script>
+    // Basic Three.js Setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Cube
+    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    // Lights
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 5, 5).normalize();
+    scene.add(light);
+
+    camera.position.z = 5;
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // UI Elements
+    const tempElem = document.getElementById('temp');
+    const humidityElem = document.getElementById('humidity');
+    const airqElem = document.getElementById('airq');
+
+
+    // Map air quality to cube color
+    function airQualityToColor(aq) {
+      if (aq <= 50) return 0x00ff00;       // Good – Green
+      if (aq <= 100) return 0xffff00;      // Moderate – Yellow
+      if (aq <= 150) return 0xffa500;      // Unhealthy for Sensitive Groups – Orange
+      if (aq <= 200) return 0xff0000;      // Unhealthy – Red
+      if (aq <= 300) return 0x8f3f97;      // Very Unhealthy – Purple
+      return 0x7e0023;                     // Hazardous – Maroon
+    }
+
+    function airQualityToText(aq) {
+      if (aq <= 50) return "Good";
+      if (aq <= 100) return "Moderate";
+      if (aq <= 150) return "Unhealthy for Sensitive Groups";
+      if (aq <= 200) return "Unhealthy";
+      if (aq <= 300) return "Very Unhealthy";
+      return "Hazardous";
+    }
+
+
+    // Handle incoming sensor data
+    function updateFromSensor(data) {
+      if (data.imu) {
+        // Convert degrees to radians for Three.js
+        cube.rotation.x = THREE.MathUtils.degToRad(data.imu.pitch || 0);
+        cube.rotation.y = THREE.MathUtils.degToRad(data.imu.yaw || 0);
+        cube.rotation.z = THREE.MathUtils.degToRad(data.imu.roll || 0);
+      }
+
+      if (data.environment) {
+        tempElem.textContent = data.environment.temperature.toFixed(1);
+        humidityElem.textContent = data.environment.humidity.toFixed(1);
+        airqElem.textContent = data.environment.air_quality.toFixed(1);
+        cube.material.color.setHex(airQualityToColor(data.environment.air_quality));
+      }
+    }
+
+    // WebSocket
+    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${wsProtocol}://${location.host}/ws`);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        updateFromSensor(data);
+      } catch (e) {
+        console.error('Failed to parse WebSocket message', e);
+      }
+    };
+
+    ws.onopen = () => console.log('WebSocket connected');
+    ws.onclose = () => console.warn('WebSocket disconnected');
+  </script>
+</body>
+</html>
