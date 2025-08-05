@@ -2,11 +2,13 @@ idf_component_register(
     SRCS
         "main.cpp"
         "src/WifiManager.cpp"
+        "src/Heartbeat.cpp"
     INCLUDE_DIRS
         "inc"
     PRIV_REQUIRES
         esp_wifi
         nvs_flash
+        driver
         esp_event
         esp_netif
 )
