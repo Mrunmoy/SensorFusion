@@ -1,0 +1,31 @@
+# ESP-IDF build artifacts
+build/
+sdkconfig
+sdkconfig.old
+
+# VSCode junk
+.vscode/
+*.code-workspace
+
+# ESP-IDF install files (if cloned locally)
+.espressif/
+*.pyc
+__pycache__/
+# IDF toolchain (installed via install.sh)
+third_party/esp-idf-tools/
+
+# Logs and dumps
+*.log
+*.elf
+*.bin
+*.map
+
+# Temporary files
+*.swp
+*.swo
+*.bak
+*.tmp
+.DS_Store
+
+# IDF tools cache
+dist/
