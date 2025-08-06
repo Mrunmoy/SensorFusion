@@ -1,7 +1,7 @@
 #pragma once
 #include "driver/gpio.h"
 
-#define HEARTBEAT_GPIO GPIO_NUM_23
+#define HEARTBEAT_GPIO GPIO_NUM_12
 
 class Heartbeat {
 public:
