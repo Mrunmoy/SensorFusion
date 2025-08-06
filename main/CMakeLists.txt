@@ -7,6 +7,9 @@ idf_component_register(
         "src/WebSocketServer.cpp"
         "src/Heartbeat.cpp"
         "src/SensorFusionSim.cpp"
+        "src/SensorI2CBus.cpp"
+        "src/MPU6050Driver.cpp"
+        "src/ADXL345Driver.cpp"
     INCLUDE_DIRS
         "inc"
     PRIV_REQUIRES
