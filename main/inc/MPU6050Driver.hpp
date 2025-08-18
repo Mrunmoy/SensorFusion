@@ -19,6 +19,8 @@ public:
     void addObserver(SensorObserver* observer);
     void startPolling(uint32_t intervalMs = 1000);
     void stopPolling();
+    // ---- Enable BYPASS so the magnetometer behind AUX I2C is visible on main I2C ----
+    bool setBypass(bool enable);
 
 private:
     static void pollingTask(void* arg);

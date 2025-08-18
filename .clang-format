@@ -1,0 +1,35 @@
+---
+# Disable any base style to avoid conflicts
+BasedOnStyle: ''
+
+# General preferences
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+# Prevent the formatter from putting very short functions on one line
+AllowShortFunctionsOnASingleLine: None
+# Prevent the formatter from putting very short loops/blocks on one line
+AllowShortBlocksOnASingleLine: false
+
+# Allman-style brace placement
+BreakBeforeBraces: Allman
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+
+# The crucial settings for the constructor initializer list
+# This ensures each initializer is on its own line.
+PackConstructorInitializers: NextLineOnly
+
+# This forces a line break before the colon, aligning the list visually.
+# BreakInheritanceListStyle: BeforeComma
+
+# This is the key setting that puts the comma on the new line
+# before the next initializer.
+BreakConstructorInitializers: BeforeComma
+
