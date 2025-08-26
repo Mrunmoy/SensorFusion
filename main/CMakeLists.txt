@@ -9,7 +9,7 @@ idf_component_register(
         "src/SensorFusionSim.cpp"
         "src/SensorI2CBus.cpp"
         "src/MPU6050Driver.cpp"
-        "src/ADXL345Driver.cpp"
+        # "src/ADXL345Driver.cpp"
         "src/QMC5883LDriver.cpp"
         "src/BMP180Driver.cpp"
     INCLUDE_DIRS
