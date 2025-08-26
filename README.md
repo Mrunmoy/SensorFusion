@@ -22,8 +22,8 @@ This project runs on an ESP32 (tested on WROOM-32D) and collects real-time IMU a
    ├─────────────────────┼────────────┼────────────┼──────────────────────────┤
    │     MPU6050 (I2C)   │    VCC     │    3.3V    │ Power                    │
    │                     │    GND     │    GND     │ Ground                   │
-   │                     │    SDA     │    GPIO21  │ I2C SDA (I2C_NUM_0)      │
-   │                     │    SCL     │    GPIO22  │ I2C SCL (I2C_NUM_0)      │
+   │                     │    SDA     │    GPIO1   │ I2C SDA (I2C_NUM_0)      │
+   │                     │    SCL     │    GPIO2   │ I2C SCL (I2C_NUM_0)      │
    ├─────────────────────┼────────────┼────────────┼──────────────────────────┤
    │    ADXL345 (I2C)    │    VCC     │    3.3V    │ Power                    │
    │                     │    GND     │    GND     │ Ground                   │
