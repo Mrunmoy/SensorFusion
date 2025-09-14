@@ -271,6 +271,12 @@ bool QMC5883LDriver::headingDegrees(float &heading_deg,
 	return true;
 }
 
+bool QMC5883LDriver::sample(float &mx, float &my, float &mz)
+{
+	// You already demonstrated this API in main.cpp:
+	return readMicroTesla(mx, my, mz);
+}
+
 // --- I2C helpers ---
 bool QMC5883LDriver::writeReg(uint8_t reg, uint8_t val) const
 {

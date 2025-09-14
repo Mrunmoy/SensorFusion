@@ -11,7 +11,13 @@
 #include "BMP180Driver.hpp"
 #include "MPU6050Driver.hpp"
 #include "QMC5883LDriver.hpp"
+#include "SFRegistry.hpp"
 #include "SensorI2CBus.hpp"
+#include "TaskRate.hpp"
+#include "Tasks.hpp"
+
+namespace
+{
 
 static const char *TAG = "MainApp";
 
@@ -33,16 +39,14 @@ void i2c_scan(SensorI2CBus &bus)
 	}
 }
 
+} // namespace
+
 extern "C" void app_main()
 {
-	// Don't forget to set your Wi-Fi credentials in sdkconfig
-	// CONFIG_ESP_WIFI_SSID="YourSSID"
-	// CONFIG_ESP_WIFI_PASSWORD="YourPassword"
 	ESP_LOGI("APP", "Starting Sensor Fusion App...");
 
-	// WifiManager::startSoftAP();
+	// ---- Wi-Fi ----
 	WifiManager::startStation();
-	// Optional: Wait for IP before starting web server
 	esp_netif_ip_info_t ip_info;
 	esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
 	while (true)
@@ -53,92 +57,65 @@ extern "C" void app_main()
 		vTaskDelay(pdMS_TO_TICKS(100));
 	}
 
-	// Define sensor drivers and buses
-	SensorI2CBus i2cBus0 = SensorI2CBus(I2C_NUM_0, GPIO_NUM_1, GPIO_NUM_2);
+	// ---- I2C bus + drivers (locals that never go out of scope) ----
+	SensorI2CBus i2cBus0(I2C_NUM_0, GPIO_NUM_1, GPIO_NUM_2);
 	if (!i2cBus0.init())
 	{
-		ESP_LOGE(TAG, "Failed to init I2C0 (MPU6050)");
+		ESP_LOGE(TAG, "Failed to init I2C0");
 		return;
 	}
 
-	// i2c_scan(i2cBus0);
-
-	// Initialize MPU6050
-	MPU6050Driver mpu = MPU6050Driver(i2cBus0, MPU6050_ADDR);
+	MPU6050Driver mpu(i2cBus0, MPU6050_ADDR);
 	if (!mpu.init())
 	{
 		ESP_LOGE(TAG, "MPU6050 init failed");
 	}
 	else
 	{
-		mpu.setBypass(true); // Enable bypass for magnetometer access
-		// i2c_scan(i2cBus0);
+		mpu.setBypass(true); // allow direct access to mag
 		ESP_LOGI(TAG, "MPU6050 OK");
 	}
 
-	vTaskDelay(pdMS_TO_TICKS(1000));
+	vTaskDelay(pdMS_TO_TICKS(200)); // small settle between inits
 
 	QMC5883LDriver mag(i2cBus0, QMC5883L_ADDR);
-	if (mag.init())
-	{
-		int16_t mx, my, mz;
-		if (mag.readRaw(mx, my, mz))
-		{
-			ESP_LOGI("MAG", "Raw: X=%d Y=%d Z=%d", mx, my, mz);
-		}
-		else
-		{
-			ESP_LOGE("MAG", "Failed to read magnetometer data");
-		}
-	}
-	else
+	if (!mag.init())
 	{
 		ESP_LOGE(TAG, "QMC5883L init failed");
 	}
 
-	// optional:
-	// qmc.configure(QMC5883LDriver::Oversample::OSR_512,
-	//               QMC5883LDriver::Range::GAUSS_8,
-	//               QMC5883LDriver::ODR::HZ_200,
-	//               QMC5883LDriver::Mode::CONTINUOUS);
-
-	float x_uT, y_uT, z_uT;
-	if (mag.readMicroTesla(x_uT, y_uT, z_uT))
-	{
-		ESP_LOGI("MAG", "MicroTesla: X=%.2f Y=%.2f Z=%.2f", x_uT, y_uT, z_uT);
-		// use vectors, heading, fusion, etc.
-	}
-
 	BMP180Driver bmp(i2cBus0, BMP180Driver::DEFAULT_ADDR,
 					 BMP180Driver::Oversampling::ULTRA_HIGH_RES);
-
-	if (bmp.init())
+	if (!bmp.init())
 	{
-		float tC = 0.0f;
-		int32_t pPa = 0;
-		if (bmp.readTempAndPressure(tC, pPa))
-		{
-			float alt_m = BMP180Driver::pressureToAltitudeMeters(
-				pPa); // sea-level 101325 Pa
-			ESP_LOGI("BMP180", "T=%.2f C, P=%ld Pa, Alt=%.1f m", tC, (long)pPa,
-					 alt_m);
-		}
-		else
-		{
-			ESP_LOGE("BMP180", "Failed to read temperature and pressure");
-		}
-	}
-	else
-	{
-		ESP_LOGE("BMP180", "BMP180 init failed");
+		ESP_LOGE(TAG, "BMP180 init failed");
 	}
 
+	// ---- Registry (local) ----
+	SFReg reg;
+
+	// ---- Contexts with per-task frequency (Hz) ----
+	ImuCtx imuCtx{&reg, &mpu, 200.0f};	// 200 Hz
+	MagCtx magCtx{&reg, &mag, 50.0f};	//  50 Hz
+	BaroCtx baroCtx{&reg, &bmp, 20.0f}; // 20 Hz
+	FusionCtx fusCtx{&reg, 200.0f};		// 200 Hz fusion loop
+
+	// ---- Start tasks (pin cores/pri to taste) ----
+	xTaskCreatePinnedToCore(ImuTask, "ImuTask", 4096, &imuCtx, 12, nullptr, 0);
+	xTaskCreatePinnedToCore(MagTask, "MagTask", 4096, &magCtx, 10, nullptr, 0);
+	xTaskCreatePinnedToCore(BaroTask, "BaroTask", 4096, &baroCtx, 9, nullptr,
+							0);
+	xTaskCreatePinnedToCore(FusionTask, "Fusion", 4096, &fusCtx, 11, nullptr,
+							1);
+
+	// ---- Infra/UI ----
 	Heartbeat::start();
 	WebSocketServer::start();
-	SensorFusionSim::start();
 
+	// If you want to run ONLY real sensors, keep the sim off.
+	// SensorFusionSim::start();
+
+	// Keep app_main() alive (objects on its stack must not go out of scope)
 	while (true)
-	{
 		vTaskDelay(pdMS_TO_TICKS(1000));
-	}
 }

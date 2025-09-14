@@ -26,6 +26,7 @@ class BMP180Driver
 	bool readTemperatureC(float &temp_c); // °C
 	bool readPressurePa(int32_t &pressure_pa); // Pa
 	bool readTempAndPressure(float &temp_c, int32_t &pressure_pa);
+	bool sample(float &temp_c, float &pressure_pa, float &alt_m);
 
 	// Polling API (like your other drivers)
 	void addObserver(SensorObserver *obs);

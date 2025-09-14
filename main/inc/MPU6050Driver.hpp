@@ -15,6 +15,8 @@ class MPU6050Driver
 	bool readAcceleration(float &ax, float &ay, float &az);
 	bool readGyroscope(float &gx, float &gy, float &gz);
 	bool readTemperature(float &temp);
+	bool sample(float &ax, float &ay, float &az, float &gx, float &gy,
+				float &gz);
 
 	void addObserver(SensorObserver *observer);
 	// ---- Enable BYPASS so the magnetometer behind AUX I2C is visible on main

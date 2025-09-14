@@ -195,6 +195,21 @@ float BMP180Driver::pressureToAltitudeMeters(int32_t pressure_pa, int32_t p0_pa)
 		   (1.0f - powf((float)pressure_pa / (float)p0_pa, 0.19029495f));
 }
 
+bool BMP180Driver::sample(float &temp_c, float &pressure_pa, float &alt_m)
+{
+	float tC = 0.0f;
+	int32_t pPa = 0;
+	if (!this->readTempAndPressure(tC, pPa))
+	{
+		return false;
+	}
+	temp_c = tC;
+	pressure_pa = static_cast<float>(pPa);
+	alt_m =
+		BMP180Driver::pressureToAltitudeMeters(pPa); // sea-level assumed inside
+	return true;
+}
+
 // --- Polling + observer ---
 
 void BMP180Driver::addObserver(SensorObserver *obs)

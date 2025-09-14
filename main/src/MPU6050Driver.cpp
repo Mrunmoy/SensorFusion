@@ -120,6 +120,16 @@ bool MPU6050Driver::readTemperature(float &temp)
 	return true;
 }
 
+// Minimal convenience wrapper that fills SI-ish units if your driver already
+// does. If your driver exposes raw reads, convert using your configured ranges.
+bool MPU6050Driver::sample(float &ax, float &ay, float &az, float &gx,
+						   float &gy, float &gz)
+{
+	bool ok_acc = readAcceleration(ax, ay, az);
+	bool ok_gyr = readGyroscope(gx, gy, gz);
+	return ok_acc && ok_gyr;
+}
+
 void MPU6050Driver::addObserver(SensorObserver *observer)
 {
 	m_observers.push_back(observer);

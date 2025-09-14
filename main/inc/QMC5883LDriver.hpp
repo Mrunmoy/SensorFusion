@@ -52,6 +52,8 @@ class QMC5883LDriver
 	bool headingDegrees(float &heading_deg,
 						uint32_t timeoutMs = 50) const; // level-only
 
+	bool sample(float &mx, float &my, float &mz);
+
 	void addObserver(SensorObserver *obs);
 
   private:
