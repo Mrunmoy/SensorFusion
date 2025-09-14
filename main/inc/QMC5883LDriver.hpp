@@ -4,7 +4,6 @@
 #include "SensorObserver.hpp"
 #include <atomic>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <vector>
 
 class QMC5883LDriver
@@ -53,9 +52,6 @@ class QMC5883LDriver
 	bool headingDegrees(float &heading_deg,
 						uint32_t timeoutMs = 50) const; // level-only
 
-	// Polling + observers (matches your MPU/BMP style)
-	void startPolling(uint32_t intervalMs = 100);
-	void stopPolling();
 	void addObserver(SensorObserver *obs);
 
   private:
@@ -63,8 +59,6 @@ class QMC5883LDriver
 	bool writeReg(uint8_t reg, uint8_t val) const;
 	bool readReg(uint8_t reg, uint8_t *buf, size_t len) const;
 
-	// Polling helpers
-	static void pollingTask(void *arg);
 	void notifyObservers();
 
 	// Current configuration (for scaling)
@@ -76,9 +70,5 @@ class QMC5883LDriver
 	SensorI2CBus &m_bus;
 	uint8_t m_addr;
 
-	// Polling state
-	std::atomic_bool m_running{false};
-	uint32_t m_intervalMs{100};
-	TaskHandle_t m_taskHandle{nullptr};
 	std::vector<SensorObserver *> m_observers;
 };

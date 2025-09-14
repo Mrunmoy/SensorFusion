@@ -4,7 +4,6 @@
 #include <atomic>
 #include <cstdint>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <vector>
 
 class BMP180Driver
@@ -29,8 +28,6 @@ class BMP180Driver
 	bool readTempAndPressure(float &temp_c, int32_t &pressure_pa);
 
 	// Polling API (like your other drivers)
-	void startPolling(uint32_t intervalMs = 1000);
-	void stopPolling();
 	void addObserver(SensorObserver *obs);
 
 	// Utility
@@ -77,17 +74,11 @@ class BMP180Driver
 	bool computeTrueTempC(int32_t UT, float &temp_c, int32_t &B5);
 	bool computeTruePressurePa(int32_t UP, int32_t B5, int32_t &P);
 
-	// Polling
-	static void pollingTask(void *arg);
 	void notifyObservers();
 
 	SensorI2CBus &m_bus;
 	uint8_t m_addr;
 	Oversampling m_oss;
 
-	// Polling state
-	std::atomic_bool m_running{false};
-	uint32_t m_intervalMs{1000};
-	TaskHandle_t m_taskHandle{nullptr};
 	std::vector<SensorObserver *> m_observers;
 };

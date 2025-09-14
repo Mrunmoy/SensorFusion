@@ -74,7 +74,6 @@ extern "C" void app_main()
 		mpu.setBypass(true); // Enable bypass for magnetometer access
 		// i2c_scan(i2cBus0);
 		ESP_LOGI(TAG, "MPU6050 OK");
-		// mpu->startPolling(1000);
 	}
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
@@ -86,7 +85,6 @@ extern "C" void app_main()
 		if (mag.readRaw(mx, my, mz))
 		{
 			ESP_LOGI("MAG", "Raw: X=%d Y=%d Z=%d", mx, my, mz);
-			mag.startPolling(1000);
 		}
 		else
 		{
@@ -124,7 +122,6 @@ extern "C" void app_main()
 				pPa); // sea-level 101325 Pa
 			ESP_LOGI("BMP180", "T=%.2f C, P=%ld Pa, Alt=%.1f m", tC, (long)pPa,
 					 alt_m);
-			bmp.startPolling();
 		}
 		else
 		{
