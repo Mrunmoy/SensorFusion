@@ -13,6 +13,7 @@ idf_component_register(
         "src/QMC5883LDriver.cpp"
         "src/BMP180Driver.cpp"
         "src/Tasks.cpp"
+        "src/fusion/Complementary.cpp"
     INCLUDE_DIRS
         "inc"
         ${CMAKE_CURRENT_LIST_DIR}/../third_party/regbus/include

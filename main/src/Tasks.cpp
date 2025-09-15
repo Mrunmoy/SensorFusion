@@ -17,9 +17,17 @@
 
 #include "LoopStats.hpp"
 
+#include "fusion/Complementary.hpp"
+#include "fusion/FusionAlgo.hpp"
+
 namespace
 {
 constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 5 seconds
+static inline float rad2deg(float r)
+{
+	return r * 57.29577951308232f;
+}
+
 } // namespace
 
 /** IMU poll task: samples at ctx->hz and publishes IMURaw. */
@@ -149,15 +157,34 @@ extern "C" void BaroTask(void *pv)
 }
 
 /** Fusion task: reads latest samples, runs fusion, publishes FUSION_STATE;
- * consumes CMD_RESET. */
+ *  consumes CMD_RESET. Keeps µs pacer for precise timing. */
 extern "C" void FusionTask(void *pv)
 {
 	static const char *TAG = "FusionTask";
 	auto *ctx = static_cast<FusionCtx *>(pv);
+
 	LoopStats stats;
 	auto pacer = make_pacer(ctx->hz);
 	ESP_LOGI(TAG, "start @ %.1f Hz (µs pacer, period=%d us)", ctx->hz,
 			 pacer.period_us);
+
+	// ---- pluggable algorithm wiring (minimal) -----------------------
+	const fusion::Algo *algo = fusion::complementary_algo(); // choose algo
+	fusion::Config cfg{}; // defaults (tweak later)
+
+	// fixed, aligned state storage (no heap, no RTTI)
+	static constexpr size_t MAX_STATE = 256;
+	static constexpr size_t MAX_ALIGN = 16;
+	fusion::Aligned<MAX_STATE, MAX_ALIGN> storage;
+
+	if (algo->state_size > MAX_STATE || algo->state_align > MAX_ALIGN)
+	{
+		ESP_LOGE(TAG, "algo state too large/aligned for buffer");
+		vTaskDelete(nullptr);
+		return;
+	}
+	algo->init(storage.ptr(), &cfg);
+	// ----------------------------------------------------------------
 
 	IMURaw imu{};
 	MagRaw mag{};
@@ -175,9 +202,16 @@ extern "C" void FusionTask(void *pv)
 			(void)ctx->reg->read<SFKey::MAG_RAW>(mag);
 			(void)ctx->reg->read<SFKey::BARO_RAW>(baro);
 
-			st = FusionState{};
-			st.t_us = imu.t_us;
-			// TODO: fill quaternion + r/p/y
+			fusion::Inputs in{};
+			in.imu = imu;
+			in.mag = mag;
+			in.baro = baro;
+			in.dt = pacer.period_us * 1e-6f; // use your pacer period
+
+			fusion::Outputs out{};
+			algo->step(storage.ptr(), &in, &out);
+
+			st = out.state; // keep your logging shape below
 			ctx->reg->write<SFKey::FUSION_STATE>(st);
 			++published;
 		}
@@ -186,7 +220,7 @@ extern "C" void FusionTask(void *pv)
 		if (ctx->reg->consume<SFKey::CMD_RESET>(rst) && rst)
 		{
 			ESP_LOGW(TAG, "CMD_RESET consumed — resetting filter state");
-			// TODO: reset/rehoming logic
+			algo->reset(storage.ptr());
 		}
 
 		if (rl.ready(esp_timer_get_time()))
@@ -195,16 +229,23 @@ extern "C" void FusionTask(void *pv)
 			double avg;
 			int64_t minv, maxv;
 			stats.snapshot(n, avg, minv, maxv);
+
+			// effective rate from measured periods
+			const double eff_hz = (avg > 0.0) ? (1e6 / avg) : 0.0;
+
 			ESP_LOGI(TAG,
-					 "steps=%u published=%u last_ts=%llu us  period_us "
-					 "avg=%.1f min=%lld max=%lld",
-					 step, published, (unsigned long long)st.t_us, avg,
+					 "r=%.1f° p=%.1f° y=%.1f° | steps=%u published=%u "
+					 "last_ts=%llu us | "
+					 "rate=%.1f Hz period_us avg=%.1f min=%lld max=%lld",
+					 rad2deg(st.roll), rad2deg(st.pitch), rad2deg(st.yaw), step,
+					 published, (unsigned long long)st.t_us, eff_hz, avg,
 					 (long long)minv, (long long)maxv);
+
 			step = published = 0;
 			stats.reset();
 		}
 
 		stats.tick();
-		sleep_until(pacer);
+		sleep_until(pacer); // <— still using your µs pacer
 	}
 }
