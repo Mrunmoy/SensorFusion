@@ -12,30 +12,14 @@
 #include "MPU6050Driver.hpp"
 #include "QMC5883LDriver.hpp"
 
+#include "MicroPacer.hpp" // new header
+#include "RateLogger.hpp" // new header
+
+#include "LoopStats.hpp"
+
 namespace
 {
-constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 1 Hz logs
-
-struct RateLogger
-{
-	uint64_t last_us{0};
-	explicit RateLogger(uint64_t interval_us)
-		: last_us(0), interval_us_(interval_us)
-	{
-	}
-	bool ready(uint64_t now)
-	{
-		if (last_us == 0 || now - last_us >= interval_us_)
-		{
-			last_us = now;
-			return true;
-		}
-		return false;
-	}
-
-  private:
-	uint64_t interval_us_;
-};
+constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 5 seconds
 } // namespace
 
 /** IMU poll task: samples at ctx->hz and publishes IMURaw. */
@@ -43,11 +27,11 @@ extern "C" void ImuTask(void *pv)
 {
 	static const char *TAG = "ImuTask";
 	auto *ctx = static_cast<ImuCtx *>(pv);
-
-	const TickType_t period = hz_to_ticks(ctx->hz);
-	TickType_t next = xTaskGetTickCount();
-	ESP_LOGI(TAG, "start @ %.1f Hz (period=%u ticks)", ctx->hz,
-			 (unsigned)period);
+	LoopStats stats;
+	// Switch to microsecond pacer for precise 200 Hz (or whatever ctx->hz is)
+	auto pacer = make_pacer(ctx->hz);
+	ESP_LOGI(TAG, "start @ %.1f Hz (µs pacer, period=%d us)", ctx->hz,
+			 pacer.period_us);
 
 	IMURaw s{};
 	RateLogger rl(LOG_INTERVAL_US);
@@ -68,13 +52,21 @@ extern "C" void ImuTask(void *pv)
 
 		if (rl.ready(esp_timer_get_time()))
 		{
+			uint64_t n;
+			double avg;
+			int64_t minv, maxv;
+			stats.snapshot(n, avg, minv, maxv);
 			ESP_LOGI(TAG,
-					 "ok=%u fail=%u last: a[%.2f %.2f %.2f] g[%.3f %.3f %.3f]",
-					 ok, fail, s.ax, s.ay, s.az, s.gx, s.gy, s.gz);
+					 "ok=%u fail=%u last: a[%.2f %.2f %.2f] g[%.3f %.3f %.3f]  "
+					 "period_us avg=%.1f min=%lld max=%lld",
+					 ok, fail, s.ax, s.ay, s.az, s.gx, s.gy, s.gz, avg,
+					 (long long)minv, (long long)maxv);
 			ok = fail = 0;
+			stats.reset();
 		}
 
-		vTaskDelayUntil(&next, period);
+		stats.tick(); // track iteration period
+		sleep_until(pacer);
 	}
 }
 
@@ -162,11 +154,10 @@ extern "C" void FusionTask(void *pv)
 {
 	static const char *TAG = "FusionTask";
 	auto *ctx = static_cast<FusionCtx *>(pv);
-
-	const TickType_t period = hz_to_ticks(ctx->hz);
-	TickType_t next = xTaskGetTickCount();
-	ESP_LOGI(TAG, "start @ %.1f Hz (period=%u ticks)", ctx->hz,
-			 (unsigned)period);
+	LoopStats stats;
+	auto pacer = make_pacer(ctx->hz);
+	ESP_LOGI(TAG, "start @ %.1f Hz (µs pacer, period=%d us)", ctx->hz,
+			 pacer.period_us);
 
 	IMURaw imu{};
 	MagRaw mag{};
@@ -179,16 +170,14 @@ extern "C" void FusionTask(void *pv)
 	{
 		++step;
 
-		// Proceed only if we have a fresh IMU sample.
 		if (ctx->reg->read<SFKey::IMU_RAW>(imu))
 		{
-			(void)ctx->reg->read<SFKey::MAG_RAW>(mag);	 // best-effort
-			(void)ctx->reg->read<SFKey::BARO_RAW>(baro); // best-effort
+			(void)ctx->reg->read<SFKey::MAG_RAW>(mag);
+			(void)ctx->reg->read<SFKey::BARO_RAW>(baro);
 
-			// TODO: run your filter and fill st.{qw,qx,qy,qz,roll,pitch,yaw}
 			st = FusionState{};
 			st.t_us = imu.t_us;
-
+			// TODO: fill quaternion + r/p/y
 			ctx->reg->write<SFKey::FUSION_STATE>(st);
 			++published;
 		}
@@ -202,11 +191,20 @@ extern "C" void FusionTask(void *pv)
 
 		if (rl.ready(esp_timer_get_time()))
 		{
-			ESP_LOGI(TAG, "steps=%u published=%u last_ts=%llu us", step,
-					 published, static_cast<unsigned long long>(st.t_us));
+			uint64_t n;
+			double avg;
+			int64_t minv, maxv;
+			stats.snapshot(n, avg, minv, maxv);
+			ESP_LOGI(TAG,
+					 "steps=%u published=%u last_ts=%llu us  period_us "
+					 "avg=%.1f min=%lld max=%lld",
+					 step, published, (unsigned long long)st.t_us, avg,
+					 (long long)minv, (long long)maxv);
 			step = published = 0;
+			stats.reset();
 		}
 
-		vTaskDelayUntil(&next, period);
+		stats.tick();
+		sleep_until(pacer);
 	}
 }
