@@ -1,90 +1,103 @@
 #pragma once
 
-#include "driver/i2c_master.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include <cstddef>
 #include <cstdint>
 
-/**
- * Thin wrapper around ESP-IDF v5 I2C master (bus+device) API.
- * - Normal I2C ops rely on the driver's own thread safety (no extra app lock).
- * - A small recursive mutex only guards: device-handle table edits & bus reset.
- * - Register helpers provided for convenience.
- */
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
+#include "driver/i2c.h"
+#include "esp_log.h"
+
+// Simple I2C bus wrapper using the legacy driver/i2c.h API.
+// Thread-safe via a bus-wide recursive mutex and RAII BusLock.
+// Public API matches your earlier working code.
+
 class SensorI2CBus
 {
   public:
 	SensorI2CBus(i2c_port_t port, gpio_num_t sda, gpio_num_t scl,
-				 uint32_t default_hz = 400000);
+				 uint32_t freq_hz = 400000)
+		: m_port(port), m_sda(sda), m_scl(scl), m_freq(freq_hz)
+	{
+	}
+
+	~SensorI2CBus()
+	{
+		deinit();
+	}
 
 	bool init();
 	void deinit();
 
-	// Optionally pre-register a device at a specific speed (Hz). 0 => default
-	// bus speed.
-	bool addDevice(uint8_t addr, uint32_t scl_speed_hz = 0);
-
-	// Register-based I/O (8-bit register address first)
+	// Register-based transactions (your drivers already use these)
+	bool read(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len,
+			  TickType_t timeout = pdMS_TO_TICKS(50));
 	bool write(uint8_t addr, uint8_t reg, const uint8_t *data, size_t len,
 			   TickType_t timeout = pdMS_TO_TICKS(50));
-	bool read(uint8_t addr, uint8_t reg, uint8_t *data, size_t len,
-			  TickType_t timeout = pdMS_TO_TICKS(50));
 
-	// Raw I/O (no register prefix)
-	bool write_raw(uint8_t addr, const uint8_t *data, size_t len,
-				   TickType_t timeout = pdMS_TO_TICKS(50));
-	bool read_raw(uint8_t addr, uint8_t *data, size_t len,
-				  TickType_t timeout = pdMS_TO_TICKS(50));
-
-	// Convenience helpers
-	bool write8(uint8_t addr, uint8_t reg, uint8_t val,
-				TickType_t to = pdMS_TO_TICKS(50));
-	bool read8(uint8_t addr, uint8_t reg, uint8_t &out,
-			   TickType_t to = pdMS_TO_TICKS(50));
-	bool write16be(uint8_t addr, uint8_t reg, uint16_t val,
-				   TickType_t to = pdMS_TO_TICKS(50));
-	bool write16le(uint8_t addr, uint8_t reg, uint16_t val,
-				   TickType_t to = pdMS_TO_TICKS(50));
-	bool read16be(uint8_t addr, uint8_t reg, uint16_t &out,
-				  TickType_t to = pdMS_TO_TICKS(50));
-	bool read16le(uint8_t addr, uint8_t reg, uint16_t &out,
-				  TickType_t to = pdMS_TO_TICKS(50));
-	bool update_bits(uint8_t addr, uint8_t reg, uint8_t mask, uint8_t set_bits,
-					 TickType_t to = pdMS_TO_TICKS(50));
-
-	bool probe(uint8_t addr, TickType_t timeout = pdMS_TO_TICKS(20));
-
-  private:
-	struct Dev
+	// Small conveniences (optional)
+	bool read8(uint8_t addr, uint8_t reg, uint8_t &val,
+			   TickType_t timeout = pdMS_TO_TICKS(50))
 	{
-		uint8_t addr = 0;
-		uint32_t speed = 0; // Hz
-		i2c_master_dev_handle_t handle = nullptr;
-	};
-
-	static constexpr size_t MAX_DEV = 8;
-
-	Dev m_devs[MAX_DEV];
-	size_t m_num = 0;
-
-	Dev *find(uint8_t addr);
-	Dev *ensure(uint8_t addr, uint32_t scl_speed_hz);
-	bool reset_bus();
-
-	static inline int ticks_to_ms(TickType_t t)
-	{
-		if (t == portMAX_DELAY)
-			return -1;
-		return static_cast<int>((uint64_t)t * 1000 / configTICK_RATE_HZ);
+		return read(addr, reg, &val, 1, timeout);
 	}
 
-	i2c_master_bus_handle_t m_bus = nullptr;
+	bool write8(uint8_t addr, uint8_t reg, uint8_t val,
+				TickType_t timeout = pdMS_TO_TICKS(50))
+	{
+		return write(addr, reg, &val, 1, timeout);
+	}
+
+	// Optional: very lightweight probe (no table allocation)
+	bool probe(uint8_t addr, TickType_t timeout = pdMS_TO_TICKS(50));
+
+	// Optional: try to recover the bus (called internally on hard errors)
+	bool busRecover();
+
+  private:
+	static constexpr const char *TAG = "SensorI2CBus";
+
+	// RAII lock for the bus-wide mutex
+	class BusLock
+	{
+	  public:
+		BusLock(SensorI2CBus &b, TickType_t to = portMAX_DELAY)
+			: m_bus(b), m_locked(false)
+		{
+			if (m_bus.m_mutex)
+			{
+				m_locked =
+					(xSemaphoreTakeRecursive(m_bus.m_mutex, to) == pdTRUE);
+			}
+		}
+		~BusLock()
+		{
+			if (m_locked && m_bus.m_mutex)
+			{
+				xSemaphoreGiveRecursive(m_bus.m_mutex);
+			}
+		}
+		BusLock(const BusLock &) = delete;
+		BusLock &operator=(const BusLock &) = delete;
+
+		bool locked() const
+		{
+			return m_locked;
+		}
+
+	  private:
+		SensorI2CBus &m_bus;
+		bool m_locked;
+	};
+
+	// One place to actually submit an I2C command
+	esp_err_t cmd_begin(i2c_cmd_handle_t cmd, TickType_t timeout);
+
 	i2c_port_t m_port;
 	gpio_num_t m_sda;
 	gpio_num_t m_scl;
-	uint32_t m_default_speed;
-
-	// Recursive mutex used ONLY for device table edits and bus reset.
-	SemaphoreHandle_t m_mutex = nullptr;
+	uint32_t m_freq;
+	SemaphoreHandle_t m_mutex{nullptr};
+	bool m_inited{false};
 };

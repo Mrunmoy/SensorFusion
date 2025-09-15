@@ -65,6 +65,8 @@ extern "C" void app_main()
 		return;
 	}
 
+	// i2c_scan(i2cBus0);
+
 	MPU6050Driver mpu(i2cBus0, MPU6050_ADDR);
 	if (!mpu.init())
 	{
@@ -96,8 +98,8 @@ extern "C" void app_main()
 
 	// ---- Contexts with per-task frequency (Hz) ----
 	ImuCtx imuCtx{&reg, &mpu, 200.0f};	// 200 Hz
-	MagCtx magCtx{&reg, &mag, 50.0f};	//  50 Hz
-	BaroCtx baroCtx{&reg, &bmp, 20.0f}; // 20 Hz
+	MagCtx magCtx{&reg, &mag, 10.0f};	//  50 Hz
+	BaroCtx baroCtx{&reg, &bmp, 10.0f}; // 20 Hz
 	FusionCtx fusCtx{&reg, 200.0f};		// 200 Hz fusion loop
 
 	// ---- Start tasks (pin cores/pri to taste) ----
