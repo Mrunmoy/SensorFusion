@@ -18,6 +18,8 @@ idf_component_register(
         ${CMAKE_CURRENT_LIST_DIR}/../third_party/regbus/include
     PRIV_REQUIRES
         esp_wifi
+        esp_driver_i2c
+        freertos
         esp_timer
         nvs_flash
         driver
