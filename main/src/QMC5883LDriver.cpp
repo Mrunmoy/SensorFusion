@@ -29,6 +29,9 @@ constexpr uint8_t CTRL1_MODE_SHIFT = 0;
 // CTRL2 fields
 constexpr uint8_t CTRL2_SOFT_RST = 0x80;
 
+static float mx_min = 1e9, my_min = 1e9, mz_min = 1e9;
+static float mx_max = -1e9, my_max = -1e9, mz_max = -1e9;
+
 // enum -> bitfield helpers
 constexpr uint8_t to_osr(QMC5883LDriver::Oversample osr)
 {

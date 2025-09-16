@@ -12,34 +12,28 @@
 #include "MPU6050Driver.hpp"
 #include "QMC5883LDriver.hpp"
 
-#include "MicroPacer.hpp" // new header
-#include "RateLogger.hpp" // new header
-
 #include "LoopStats.hpp"
+#include "MicroPacer.hpp"
+#include "RateLogger.hpp"
 
 #include "fusion/Complementary.hpp"
 #include "fusion/FusionAlgo.hpp"
 
 namespace
 {
-constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 5 seconds
+constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 1 second
 
 constexpr float DEG2RAD = 0.017453292519943295f; // pi/180
 
-// Expect these in your project; if not, you can keep these locals.
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
-#endif
-#ifndef M_PI_2
-#define M_PI_2 1.57079632679489661923
 #endif
 
 static inline float clampf(float v, float lo, float hi)
 {
 	return v < lo ? lo : (v > hi ? hi : v);
 }
-static inline float wrap_pi(float a)
+static inline float wrap_pi(float a) // wrap radians to [-pi, pi]
 {
 	while (a > M_PI)
 		a -= 2.0f * (float)M_PI;
@@ -47,7 +41,6 @@ static inline float wrap_pi(float a)
 		a += 2.0f * (float)M_PI;
 	return a;
 }
-
 static inline float rad2deg(float r)
 {
 	return r * 57.29577951308232f;
@@ -56,7 +49,6 @@ static inline float safe_atan2(float y, float x)
 {
 	return (x == 0.f && y == 0.f) ? 0.f : atan2f(y, x);
 }
-
 } // namespace
 
 /** IMU poll task: samples at ctx->hz and publishes IMURaw. */
@@ -65,7 +57,8 @@ extern "C" void ImuTask(void *pv)
 	static const char *TAG = "ImuTask";
 	auto *ctx = static_cast<ImuCtx *>(pv);
 	LoopStats stats;
-	// Switch to microsecond pacer for precise 200 Hz (or whatever ctx->hz is)
+
+	// µs pacer for precise rates (e.g., 200 Hz)
 	auto pacer = make_pacer(ctx->hz);
 	ESP_LOGI(TAG, "start @ %.1f Hz (µs pacer, period=%d us)", ctx->hz,
 			 pacer.period_us);
@@ -83,8 +76,9 @@ extern "C" void ImuTask(void *pv)
 			s.t_us = esp_timer_get_time();
 			ctx->reg->write<SFKey::IMU_RAW>(s);
 
-			if ((++dbg_counter % 50u) == 0u)
-			{ // ~4 logs/sec at 200 Hz
+			// Occasionally print raw counts to sanity-check scaling
+			if ((++dbg_counter % 50u) == 0u) // ~4 logs/s at 200 Hz
+			{
 				int16_t rx, ry, rz;
 				if (ctx->mpu->readRawAccel(rx, ry, rz))
 				{
@@ -113,16 +107,33 @@ extern "C" void ImuTask(void *pv)
 			stats.reset();
 		}
 
-		stats.tick(); // track iteration period
+		stats.tick();
 		sleep_until(pacer);
 	}
 }
 
 /** Magnetometer poll task: samples at ctx->hz and publishes MagRaw. */
+// --- place these file-scope statics near the top of Tasks.cpp (they already
+// are in your file) ---
+static float mx_min = 1e9f, my_min = 1e9f, mz_min = 1e9f;
+static float mx_max = -1e9f, my_max = -1e9f, mz_max = -1e9f;
+
+// --- REPLACE YOUR MagTask WITH THIS VERSION ---
 extern "C" void MagTask(void *pv)
 {
 	static const char *TAG = "MagTask";
 	auto *ctx = static_cast<MagCtx *>(pv);
+
+	// Soft-iron matrix (identity until you fit it offline)
+	static const float mag_soft[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+
+	// Hard-iron bias (estimated from a sweep)
+	static float bx = 0.f, by = 0.f, bz = 0.f;
+	static bool calib_valid = false;
+
+	// Require at least this span on EACH axis before enabling calibration
+	static constexpr float SPAN_THRESH_UT = 8.0f; // µT; tweak 5–15 as needed
+	static constexpr float LPF = 0.02f;			  // slow bias update when valid
 
 	const TickType_t period = hz_to_ticks(ctx->hz);
 	TickType_t next = xTaskGetTickCount();
@@ -139,6 +150,62 @@ extern "C" void MagTask(void *pv)
 		{
 			++ok;
 			m.t_us = esp_timer_get_time();
+
+			// Track extrema for rough bias (hard-iron)
+			mx_min = fminf(mx_min, m.mx);
+			mx_max = fmaxf(mx_max, m.mx);
+			my_min = fminf(my_min, m.my);
+			my_max = fmaxf(my_max, m.my);
+			mz_min = fminf(mz_min, m.mz);
+			mz_max = fmaxf(mz_max, m.mz);
+
+			const float sx = mx_max - mx_min;
+			const float sy = my_max - my_min;
+			const float sz = mz_max - mz_min;
+
+			// Enable calibration only after we’ve seen enough span on all axes
+			if (!calib_valid && sx > SPAN_THRESH_UT && sy > SPAN_THRESH_UT &&
+				sz > SPAN_THRESH_UT)
+			{
+				bx = 0.5f * (mx_max + mx_min);
+				by = 0.5f * (my_max + my_min);
+				bz = 0.5f * (mz_max + mz_min);
+				calib_valid = true;
+				ESP_LOGW(TAG,
+						 "calib VALID: bias=[%.2f %.2f %.2f] span=[%.2f %.2f "
+						 "%.2f] (µT)",
+						 bx, by, bz, sx, sy, sz);
+			}
+			else if (calib_valid)
+			{
+				// Slowly refine bias as the sweep improves
+				const float bx_new = 0.5f * (mx_max + mx_min);
+				const float by_new = 0.5f * (my_max + my_min);
+				const float bz_new = 0.5f * (mz_max + mz_min);
+				bx = (1.0f - LPF) * bx + LPF * bx_new;
+				by = (1.0f - LPF) * by + LPF * by_new;
+				bz = (1.0f - LPF) * bz + LPF * bz_new;
+			}
+
+			// Apply calibration (ONLY if valid), else pass raw through
+			float mx = m.mx, my = m.my, mz = m.mz;
+			if (calib_valid)
+			{
+				mx -= bx;
+				my -= by;
+				mz -= bz; // hard-iron
+				const float mx_c = mag_soft[0][0] * mx + mag_soft[0][1] * my +
+								   mag_soft[0][2] * mz;
+				const float my_c = mag_soft[1][0] * mx + mag_soft[1][1] * my +
+								   mag_soft[1][2] * mz;
+				const float mz_c = mag_soft[2][0] * mx + mag_soft[2][1] * my +
+								   mag_soft[2][2] * mz;
+				m.mx = mx_c;
+				m.my = my_c;
+				m.mz = mz_c;
+			}
+			// else keep m.mx/my/mz as raw to preserve proper magnitude
+
 			ctx->reg->write<SFKey::MAG_RAW>(m);
 		}
 		else
@@ -148,8 +215,14 @@ extern "C" void MagTask(void *pv)
 
 		if (rl.ready(esp_timer_get_time()))
 		{
-			ESP_LOGI(TAG, "ok=%u fail=%u last: m[%.2f %.2f %.2f] uT", ok, fail,
-					 m.mx, m.my, m.mz);
+			const float sx = mx_max - mx_min;
+			const float sy = my_max - my_min;
+			const float sz = mz_max - mz_min;
+			ESP_LOGI(TAG,
+					 "ok=%u fail=%u last: m[%.2f %.2f %.2f] uT | calib=%s "
+					 "bias=[%.2f %.2f %.2f] span=[%.2f %.2f %.2f]",
+					 ok, fail, m.mx, m.my, m.mz, calib_valid ? "ON" : "OFF", bx,
+					 by, bz, sx, sy, sz);
 			ok = fail = 0;
 		}
 
@@ -196,14 +269,6 @@ extern "C" void BaroTask(void *pv)
 	}
 }
 
-static inline float wrap180(float d)
-{
-	d = fmodf(d + 180.0f, 360.0f);
-	if (d < 0)
-		d += 360.0f;
-	return d - 180.0f;
-}
-
 /** Fusion task: reads latest samples, runs fusion, publishes FUSION_STATE;
  *  consumes CMD_RESET. Keeps µs pacer for precise timing. */
 extern "C" void FusionTask(void *pv)
@@ -238,9 +303,8 @@ extern "C" void FusionTask(void *pv)
 	// --- quick “still” calibration (1.5 s): gyro bias (deg/s) + accel scale
 	// fudge
 	float gyro_bias_deg[3] = {
-		0.f, 0.f, 0.f}; // leave in deg/s because filter expects deg/s input
-	float accel_fudge =
-		1.0f; // multiply ax/ay/az (m/s²) by this before passing to filter
+		0.f, 0.f, 0.f};		  // keep in deg/s (filter expects deg/s input)
+	float accel_fudge = 1.0f; // multiply ax/ay/az (m/s²) by this before filter
 
 	auto quick_cal = [&](float seconds = 1.5f)
 	{
@@ -265,8 +329,7 @@ extern "C" void FusionTask(void *pv)
 				sum_anorm += an;
 				++n;
 			}
-			// yield a bit; IMU producer is 200 Hz
-			vTaskDelay(pdMS_TO_TICKS(1));
+			vTaskDelay(pdMS_TO_TICKS(1)); // IMU producer is ~200 Hz
 		}
 
 		if (n > 10)
@@ -276,14 +339,14 @@ extern "C" void FusionTask(void *pv)
 			gyro_bias_deg[2] = (float)(sum_gz / n);
 			const double mean_anorm = sum_anorm / n;
 			if (mean_anorm > 1e-3)
-			{
-				accel_fudge = (float)(9.80665 / mean_anorm); // bring |a| to 1 g
-			}
+				accel_fudge =
+					(float)(9.80665 / mean_anorm); // bring |a| to ~1 g
+
 			ESP_LOGI(TAG,
 					 "QuickCal: n=%d gyro_bias(deg/s)=[%.3f %.3f %.3f], "
 					 "|a|=%.2f -> fudge=%.3f",
 					 n, gyro_bias_deg[0], gyro_bias_deg[1], gyro_bias_deg[2],
-					 (float)(mean_anorm), accel_fudge);
+					 (float)mean_anorm, accel_fudge);
 		}
 		else
 		{
@@ -310,8 +373,8 @@ extern "C" void FusionTask(void *pv)
 
 			// Apply quick-cal corrections in-line (no filter changes needed)
 			IMURaw imu_corr = imu;
-			imu_corr.gx -= gyro_bias_deg[0]; // still deg/s here; filter will
-											 // convert to rad/s
+			imu_corr.gx -=
+				gyro_bias_deg[0]; // deg/s (filter will convert to rad/s)
 			imu_corr.gy -= gyro_bias_deg[1];
 			imu_corr.gz -= gyro_bias_deg[2];
 			imu_corr.ax *= accel_fudge; // m/s²
@@ -319,40 +382,30 @@ extern "C" void FusionTask(void *pv)
 			imu_corr.az *= accel_fudge;
 
 			fusion::Inputs in{};
-			in.imu = imu_corr; // corrected
-			in.mag = mag;
+			in.imu = imu_corr; // corrected IMU
+			in.mag = mag;	   // (already calibrated by MagTask)
 			in.baro = baro;
-			in.dt =
-				pacer.period_us *
-				1e-6f; // fallback dt; algo will prefer IMU timestamp if sane
+			in.dt = pacer.period_us * 1e-6f; // fallback dt
 
 			fusion::Outputs out{};
 			algo->step(storage.ptr(), &in, &out);
 
-			st = out.state; // keep for logging/output
+			st = out.state;
 			ctx->reg->write<SFKey::FUSION_STATE>(st);
 
-			// --- DEBUG: reference angles vs fused
-			// ---------------------------------
+			// ---- DEBUG reference angles vs fused --------------------------
 			{
-				// Note: imu_corr.* already includes scale fudge
 				const float ax = imu_corr.ax, ay = imu_corr.ay,
 							az = imu_corr.az;
 				const float acc_norm = sqrtf(ax * ax + ay * ay + az * az);
 
-				// reference tilt (accel only)
-				// const float roll_acc = atan2f(ay, az);
-				// const float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az *
-				// az)); reference tilt (accel only), assume X forward, Y left,
-				// Z up
+				// Accel-only tilt (radians), wrap to [-pi, pi]
 				float roll_acc = atan2f(ay, sqrtf(ax * ax + az * az));
 				float pitch_acc = atan2f(-ax, az);
+				roll_acc = wrap_pi(roll_acc);
+				pitch_acc = wrap_pi(pitch_acc);
 
-				// when computing/printing acc-only roll/pitch:
-				roll_acc = wrap180(roll_acc);
-				pitch_acc = wrap180(pitch_acc);
-
-				// Tilt-compensated magnetic yaw (using fused roll/pitch)
+				// Tilt-compensated magnetic yaw using fused roll/pitch
 				float yaw_mag = st.yaw;
 				{
 					const float cr = cosf(st.roll), sr = sinf(st.roll);
@@ -374,7 +427,7 @@ extern "C" void FusionTask(void *pv)
 					ESP_LOGI(TAG,
 							 "RPY fused= [%.1f, %.1f, %.1f] deg | "
 							 "accRP= [%.1f, %.1f] deg | magY= %.1f deg | "
-							 "|a|=%.2f (expect ~9.8 if m/s^2, ~1.0 if g) | "
+							 "|a|=%.2f (expect ~9.8) | "
 							 "Δr=%.1f Δp=%.1f Δy=%.1f",
 							 rad2deg(st.roll), rad2deg(st.pitch),
 							 rad2deg(st.yaw), rad2deg(roll_acc),
@@ -388,11 +441,10 @@ extern "C" void FusionTask(void *pv)
 					(void)avg;
 					(void)minv;
 					(void)maxv;
-
 					stats.reset();
 				}
 			}
-			// ----------------------------------------------------------------------
+			// ----------------------------------------------------------------
 
 			++published;
 		}
@@ -402,17 +454,16 @@ extern "C" void FusionTask(void *pv)
 		{
 			ESP_LOGW(TAG, "CMD_RESET consumed — resetting filter state");
 			algo->reset(storage.ptr());
-			// keep quick-cal results; if you want a fresh quick-cal, call
-			// quick_cal() here
+			// If you want a fresh quick-cal after reset, call quick_cal() here
 		}
 
+		// periodic loop stats
 		if (rl.ready(esp_timer_get_time()))
 		{
 			uint64_t n;
 			double avg;
 			int64_t minv, maxv;
 			stats.snapshot(n, avg, minv, maxv);
-
 			const double eff_hz = (avg > 0.0) ? (1e6 / avg) : 0.0;
 
 			ESP_LOGI(TAG,
