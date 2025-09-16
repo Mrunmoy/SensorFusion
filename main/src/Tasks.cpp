@@ -19,6 +19,8 @@
 #include "fusion/Complementary.hpp"
 #include "fusion/FusionAlgo.hpp"
 
+#include <math.h>
+
 namespace
 {
 constexpr uint64_t LOG_INTERVAL_US = 1'000'000; // 1 second
@@ -112,13 +114,12 @@ extern "C" void ImuTask(void *pv)
 	}
 }
 
-/** Magnetometer poll task: samples at ctx->hz and publishes MagRaw. */
-// --- place these file-scope statics near the top of Tasks.cpp (they already
-// are in your file) ---
+// ----------------- Magnetometer -----------------
+
+// File-scope extrema for running hard-iron estimate
 static float mx_min = 1e9f, my_min = 1e9f, mz_min = 1e9f;
 static float mx_max = -1e9f, my_max = -1e9f, mz_max = -1e9f;
 
-// --- REPLACE YOUR MagTask WITH THIS VERSION ---
 extern "C" void MagTask(void *pv)
 {
 	static const char *TAG = "MagTask";
@@ -135,10 +136,23 @@ extern "C" void MagTask(void *pv)
 	static constexpr float SPAN_THRESH_UT = 8.0f; // µT; tweak 5–15 as needed
 	static constexpr float LPF = 0.02f;			  // slow bias update when valid
 
-	const TickType_t period = hz_to_ticks(ctx->hz);
+	// --- Rate bump safeguard: ensure >= 25 Hz unless user already set higher
+	// ---
+	float hz = ctx->hz;
+	if (hz < 25.f)
+	{
+		ESP_LOGW(TAG,
+				 "ctx->hz=%.1f too low; bumping MagTask to 25.0 Hz for better "
+				 "yaw tracking",
+				 hz);
+		hz = 25.f;
+	}
+	const TickType_t period = hz_to_ticks(hz);
 	TickType_t next = xTaskGetTickCount();
-	ESP_LOGI(TAG, "start @ %.1f Hz (period=%u ticks)", ctx->hz,
-			 (unsigned)period);
+	ESP_LOGI(TAG, "start @ %.1f Hz (period=%u ticks)", hz, (unsigned)period);
+
+	// NOTE: If your QMC5883L driver exposes an ODR setter, consider enabling
+	// ~50 Hz here. e.g., ctx->mag->setOutputDataRate(QMC5883LDriver::ODR_50HZ);
 
 	MagRaw m{};
 	RateLogger rl(LOG_INTERVAL_US);
@@ -175,6 +189,9 @@ extern "C" void MagTask(void *pv)
 						 "calib VALID: bias=[%.2f %.2f %.2f] span=[%.2f %.2f "
 						 "%.2f] (µT)",
 						 bx, by, bz, sx, sy, sz);
+
+				// TODO (optional): persist bias/soft matrix to NVS and reload
+				// on boot.
 			}
 			else if (calib_valid)
 			{
@@ -284,7 +301,7 @@ extern "C" void FusionTask(void *pv)
 	// ---- choose algorithm and config ---------------------------------
 	const fusion::Algo *algo = fusion::complementary_algo();
 	fusion::Config cfg{};  // defaults
-	cfg.yaw_beta = 0.010f; // gentle mag blend until we calibrate mag
+	cfg.yaw_beta = 0.035f; // slightly stronger mag blend for faster convergence
 
 	// fixed, aligned state storage (no heap, no RTTI)
 	static constexpr size_t MAX_STATE = 256;
@@ -381,9 +398,35 @@ extern "C" void FusionTask(void *pv)
 			imu_corr.ay *= accel_fudge;
 			imu_corr.az *= accel_fudge;
 
+			// ---------- Gate magnetometer usage in motion ----------
+			// Heuristics: use mag only when |a| ~ 1g, gyro not too high, field
+			// magnitude plausible.
+			const float anorm =
+				sqrtf(imu_corr.ax * imu_corr.ax + imu_corr.ay * imu_corr.ay +
+					  imu_corr.az * imu_corr.az);
+			const float gsum = fabsf(imu_corr.gx) + fabsf(imu_corr.gy) +
+							   fabsf(imu_corr.gz); // deg/s sum
+			const float mnorm =
+				sqrtf(mag.mx * mag.mx + mag.my * mag.my + mag.mz * mag.mz);
+			const bool accel_ok = (anorm > 8.0f && anorm < 11.5f); // m/s²
+			const bool gyro_ok = (gsum < 120.0f);				   // deg/s
+			const bool field_ok =
+				(mnorm > 10.0f && mnorm < 100.0f); // µT plausible
+			const bool mag_ok = accel_ok && gyro_ok && field_ok;
+
+			MagRaw mag_use = mag;
+			if (!mag_ok)
+			{
+				// Many filters ignore NaN inputs; if yours does not, you can
+				// set to zero.
+				mag_use.mx = NAN;
+				mag_use.my = NAN;
+				mag_use.mz = NAN;
+			}
+
 			fusion::Inputs in{};
 			in.imu = imu_corr; // corrected IMU
-			in.mag = mag;	   // (already calibrated by MagTask)
+			in.mag = mag_use;  // gated mag
 			in.baro = baro;
 			in.dt = pacer.period_us * 1e-6f; // fallback dt
 
@@ -428,13 +471,14 @@ extern "C" void FusionTask(void *pv)
 							 "RPY fused= [%.1f, %.1f, %.1f] deg | "
 							 "accRP= [%.1f, %.1f] deg | magY= %.1f deg | "
 							 "|a|=%.2f (expect ~9.8) | "
-							 "Δr=%.1f Δp=%.1f Δy=%.1f",
+							 "Δr=%.1f Δp=%.1f Δy=%.1f | mag_ok=%s mnorm=%.1f",
 							 rad2deg(st.roll), rad2deg(st.pitch),
 							 rad2deg(st.yaw), rad2deg(roll_acc),
 							 rad2deg(pitch_acc), rad2deg(yaw_mag), acc_norm,
 							 rad2deg(st.roll - roll_acc),
 							 rad2deg(st.pitch - pitch_acc),
-							 rad2deg(st.yaw - yaw_mag));
+							 rad2deg(st.yaw - yaw_mag), mag_ok ? "yes" : "no",
+							 mnorm);
 
 					(void)eff_hz;
 					(void)n;
