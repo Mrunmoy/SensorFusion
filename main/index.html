@@ -1,127 +1,316 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+
 <head>
-  <meta charset="UTF-8">
-  <title>Sensor Fusion Dashboard</title>
+  <meta charset="utf-8" />
+  <title>ECG Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #0f141a;
+      --grid: #334155;
+      --mid: #475569;
+      --stroke: #86efac;
+      --text: #cdd6f4;
+      --border: #1f2937;
+      --pill: #1f2937;
+      --accent: #fb923c;
+      --ok: #22c55e;
+      --warn: #7f1d1d;
+    }
+
+    html,
     body {
       margin: 0;
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      overflow: hidden;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
-    #overlay {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.4);
-      padding: 10px;
-      border-radius: 8px;
+
+    header {
+      padding: 10px 14px;
+      font-weight: 600;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    #status {
+      font-size: 12px;
+      opacity: .9
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      border: 1px solid var(--pill);
+      border-radius: 999px
+    }
+
+    #lead {
+      background: var(--warn);
+      border-color: var(--warn);
+      display: none
+    }
+
+    #wrap {
+      padding: 8px 14px 14px
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 8px 0;
+      flex-wrap: wrap
+    }
+
+    label {
+      font-size: 12px;
+      opacity: .9
+    }
+
+    input[type=range] {
+      width: 220px;
+      accent-color: var(--accent)
+    }
+
+    canvas {
+      width: 100%;
+      height: 320px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: block
+    }
+
+    .spacer {
+      flex: 1
     }
   </style>
 </head>
+
 <body>
-  <div id="overlay">
-    <div>Temp: <span id="temp">--</span>°C</div>
-    <div>Humidity: <span id="humidity">--</span>%</div>
-    <div>Air Quality: <span id="airq">--</span></div>
+  <header>
+    ECG Viewer
+    <span id="status" class="pill">connecting…</span>
+    <span id="lead" class="pill">LEADS OFF</span>
+    <span id="hr" class="pill">-- bpm</span>
+  </header>
+
+  <div id="wrap">
+    <div class="row">
+      <label>Y scale:</label>
+      <input id="ys" type="range" min="250" max="3000" step="50" value="1500" />
+      <span id="ysv">1500 mV</span>
+      <span class="spacer"></span>
+      <span class="pill">fs = 250 Hz</span>
+      <span class="pill">frame = 25 samples</span>
+    </div>
+
+    <div class="row">
+      <label>Mains (Hz):</label>
+      <input id="hz" type="range" min="45" max="65" step="1" value="50" />
+      <span id="hzv">50 Hz</span>
+
+      <label style="margin-left:12px">Q:</label>
+      <input id="qq" type="range" min="10" max="50" step="1" value="30" />
+      <span id="qqv">30</span>
+    </div>
+
+    <canvas id="cv"></canvas>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('Service worker registered.'))
-      .catch(err => console.error('Service worker registration failed:', err));
-  }
-  </script>
 
   <script>
-    // Basic Three.js Setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    (() => {
+      // ---- Config (must match firmware) ----
+      const SAMPLE_RATE = 250;   // Hz
+      const BATCH = 25;    // samples per WS frame
+      const SECONDS = 6;     // visible history
+      const CAP = SAMPLE_RATE * SECONDS;
 
-    // Cube
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
-    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+      // ---- DOM refs ----
+      const cv = document.getElementById('cv');
+      const cx = cv.getContext('2d');
+      const st = document.getElementById('status');
+      const leadEl = document.getElementById('lead');
+      const hrEl = document.getElementById('hr');
 
-    // Lights
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5).normalize();
-    scene.add(light);
+      const ys = document.getElementById('ys');
+      const ysv = document.getElementById('ysv');
+      const hz = document.getElementById('hz');
+      const hzv = document.getElementById('hzv');
+      const qq = document.getElementById('qq');
+      const qqv = document.getElementById('qqv');
 
-    camera.position.z = 5;
+      // ---- Canvas DPI scaling ----
+      function resizeCanvas() {
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = cv.getBoundingClientRect();
+        cv.width = Math.floor(rect.width * dpr);
+        cv.height = Math.floor(320 * dpr);       // fixed CSS height
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);   // draw in CSS pixels
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
-    // Animation Loop
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
-    animate();
+      // ---- UI state ----
+      let yScale = parseInt(localStorage.getItem('ys') || ys.value, 10);
+      ys.value = yScale; ysv.textContent = yScale + ' mV';
+      ys.oninput = () => { yScale = parseInt(ys.value, 10); ysv.textContent = yScale + ' mV'; localStorage.setItem('ys', ys.value); };
 
-    // UI Elements
-    const tempElem = document.getElementById('temp');
-    const humidityElem = document.getElementById('humidity');
-    const airqElem = document.getElementById('airq');
+      let ws = null;
+      function sendCtl(msg) { if (ws && ws.readyState === 1) ws.send(msg); }
 
+      // Restore notch controls if saved
+      const savedHz = localStorage.getItem('notchHz'); if (savedHz) hz.value = savedHz;
+      const savedQ = localStorage.getItem('notchQ'); if (savedQ) qq.value = savedQ;
+      hzv.textContent = `${hz.value} Hz`;
+      qqv.textContent = `${qq.value}`;
 
-    // Map air quality to cube color
-    function airQualityToColor(aq) {
-      if (aq <= 50) return 0x00ff00;       // Good – Green
-      if (aq <= 100) return 0xffff00;      // Moderate – Yellow
-      if (aq <= 150) return 0xffa500;      // Unhealthy for Sensitive Groups – Orange
-      if (aq <= 200) return 0xff0000;      // Unhealthy – Red
-      if (aq <= 300) return 0x8f3f97;      // Very Unhealthy – Purple
-      return 0x7e0023;                     // Hazardous – Maroon
-    }
+      hz.oninput = () => {
+        hzv.textContent = `${hz.value} Hz`;
+        localStorage.setItem('notchHz', hz.value);
+        sendCtl(`notchHz=${hz.value}`);
+      };
+      qq.oninput = () => {
+        qqv.textContent = `${qq.value}`;
+        localStorage.setItem('notchQ', qq.value);
+        sendCtl(`notchQ=${qq.value}`);
+      };
 
-    function airQualityToText(aq) {
-      if (aq <= 50) return "Good";
-      if (aq <= 100) return "Moderate";
-      if (aq <= 150) return "Unhealthy for Sensitive Groups";
-      if (aq <= 200) return "Unhealthy";
-      if (aq <= 300) return "Very Unhealthy";
-      return "Hazardous";
-    }
-
-
-    // Handle incoming sensor data
-    function updateFromSensor(data) {
-      if (data.imu) {
-        // Convert degrees to radians for Three.js
-        cube.rotation.x = THREE.MathUtils.degToRad(data.imu.pitch || 0);
-        cube.rotation.y = THREE.MathUtils.degToRad(data.imu.yaw || 0);
-        cube.rotation.z = THREE.MathUtils.degToRad(data.imu.roll || 0);
+      // ---- Ring buffer ----
+      const buf = new Int16Array(CAP);
+      let head = 0, count = 0, totalSamples = 0;
+      function pushBatch(a16) {
+        for (let i = 0; i < a16.length; i++) {
+          buf[head] = a16[i];
+          head = (head + 1) % CAP;
+          if (count < CAP) count++;
+          totalSamples++;
+        }
       }
 
-      if (data.environment) {
-        tempElem.textContent = data.environment.temperature.toFixed(1);
-        humidityElem.textContent = data.environment.humidity.toFixed(1);
-        airqElem.textContent = data.environment.air_quality.toFixed(1);
-        cube.material.color.setHex(airQualityToColor(data.environment.air_quality));
+      // ---- Simple R-peak detector + BPM ----
+      // Adaptive envelope via EMA(|signal|); threshold = k * env
+      let env = 0, last = 0, rising = false, lastPeakIdx = -1e9;
+      const alpha = 0.98;            // envelope smoothing
+      const k = 2.5;                 // threshold multiplier
+      const refracSamp = Math.floor(0.2 * SAMPLE_RATE); // 200 ms
+      let peaks = [];                // absolute sample indices
+
+      function processBatch(a16) {
+        for (let i = 0; i < a16.length; i++) {
+          const v = a16[i];
+          const a = Math.abs(v);
+          env = alpha * env + (1 - alpha) * a;
+          const thr = k * env;
+
+          if (v > last) rising = true;
+          if (rising && v < last && last > thr && (totalSamples - refracSamp) > lastPeakIdx) {
+            const peakIdx = totalSamples - 1;
+            lastPeakIdx = peakIdx;
+            peaks.push(peakIdx);
+            // Keep only last 10 s of peaks
+            const cutoff = totalSamples - SAMPLE_RATE * 10;
+            while (peaks.length && peaks[0] < cutoff) peaks.shift();
+            updateHR();
+            rising = false;
+          }
+          last = v;
+        }
       }
-    }
 
-    // WebSocket
-    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${wsProtocol}://${location.host}/ws`);
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        updateFromSensor(data);
-      } catch (e) {
-        console.error('Failed to parse WebSocket message', e);
+      function updateHR() {
+        if (peaks.length < 2) { hrEl.textContent = '-- bpm'; return; }
+        const rr = [];
+        for (let i = 1; i < peaks.length; i++) rr.push((peaks[i] - peaks[i - 1]) / SAMPLE_RATE);
+        const recent = rr.slice(-8).sort((a, b) => a - b);
+        const medRR = recent[Math.floor(recent.length / 2)];
+        const bpm = Math.max(0, Math.min(240, 60 / medRR));
+        hrEl.textContent = `${bpm.toFixed(0)} bpm`;
       }
-    };
 
-    ws.onopen = () => console.log('WebSocket connected');
-    ws.onclose = () => console.warn('WebSocket disconnected');
+      // ---- Plotter ----
+      function draw() {
+        const W = cv.clientWidth, H = cv.clientHeight;
+        cx.clearRect(0, 0, W, H);
+
+        // grid
+        cx.globalAlpha = 0.25;
+        cx.strokeStyle = '#334155';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        for (let x = 0; x < W; x += 25) { cx.moveTo(x, 0); cx.lineTo(x, H); }
+        for (let y = 0; y < H; y += 25) { cx.moveTo(0, y); cx.lineTo(W, y); }
+        cx.stroke();
+        cx.globalAlpha = 1;
+
+        // midline
+        cx.strokeStyle = '#475569';
+        cx.beginPath(); cx.moveTo(0, H / 2); cx.lineTo(W, H / 2); cx.stroke();
+
+        if (count > 0) {
+          // waveform
+          cx.strokeStyle = '#86efac';
+          cx.lineWidth = 2;
+          cx.beginPath();
+          const span = Math.min(count, CAP);
+          for (let x = 0; x < W; x++) {
+            const idx = (head - 1 - Math.floor(x * span / W) + CAP) % CAP;
+            const mv = buf[idx];
+            const y = H / 2 - (mv / yScale) * (H * 0.45);
+            if (x === 0) cx.moveTo(W - 1 - x, y); else cx.lineTo(W - 1 - x, y);
+          }
+          cx.stroke();
+
+          // peak markers (last SECONDS)
+          cx.strokeStyle = '#22c55e';
+          const now = totalSamples;
+          for (const p of peaks) {
+            const age = (now - p) / SAMPLE_RATE;
+            if (age < 0 || age > SECONDS) continue;
+            const x = W - (age / SECONDS) * W;
+            cx.beginPath(); cx.moveTo(x, 10); cx.lineTo(x, H - 10); cx.stroke();
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+      requestAnimationFrame(draw);
+
+      // ---- WebSocket ----
+      function connect() {
+        const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+        ws = new WebSocket(`${proto}://${location.host}/ws`);
+        ws.binaryType = 'arraybuffer';
+
+        ws.onopen = () => {
+          st.textContent = 'connected';
+          leadEl.style.display = 'none';
+          // send current notch settings
+          sendCtl(`notchHz=${hz.value}`);
+          sendCtl(`notchQ=${qq.value}`);
+        };
+        ws.onclose = () => { st.textContent = 'disconnected — retrying…'; setTimeout(connect, 750); };
+        ws.onerror = () => { st.textContent = 'error'; };
+
+        ws.onmessage = (ev) => {
+          if (typeof ev.data === 'string') {
+            if (ev.data === 'leads_off') leadEl.style.display = '';
+            if (ev.data === 'leads_on') leadEl.style.display = 'none';
+            return;
+          }
+          const a16 = new Int16Array(ev.data);
+          if (a16.length) { pushBatch(a16); processBatch(a16); }
+        };
+      }
+      connect();
+    })();
   </script>
 </body>
+
 </html>

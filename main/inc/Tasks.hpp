@@ -3,40 +3,14 @@
 #include "SFRegistry.hpp"
 #include "TaskRate.hpp"
 
-// Forward-declare your drivers
-class MPU6050Driver;
-class QMC5883LDriver;
-class BMP180Driver;
-
-struct ImuCtx
+struct EcgCtx
 {
-	SFReg *reg;
-	MPU6050Driver *mpu;
-	float hz;
+	float hz = 250.0f; // sampling rate
+	// add pointers here later if we want registry/websocket, etc.
 };
 
-struct MagCtx
-{
-	SFReg *reg;
-	QMC5883LDriver *mag;
-	float hz;
-};
+// Forward decl for FreeRTOS task signature
+extern "C" void EcgTask(void *pv);
 
-struct BaroCtx
-{
-	SFReg *reg;
-	BMP180Driver *baro;
-	float hz;
-};
-
-struct FusionCtx
-{
-	SFReg *reg;
-	float hz;
-};
-
-// FreeRTOS-compatible task entry points
-extern "C" void ImuTask(void *pv);
-extern "C" void MagTask(void *pv);
-extern "C" void BaroTask(void *pv);
-extern "C" void FusionTask(void *pv);
+extern "C" void EcgSetNotchHz(float hz);
+extern "C" void EcgSetNotchQ(float q);
