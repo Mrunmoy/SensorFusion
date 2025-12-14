@@ -317,11 +317,11 @@ extern "C" void FusionTask(void *pv)
 	algo->init(storage.ptr(), &cfg);
 	// ------------------------------------------------------------------
 
-	// --- quick “still” calibration (1.5 s): gyro bias (deg/s) + accel scale
+	// --- quick "still" calibration (1.5 s): gyro bias (deg/s) + accel scale
 	// fudge
 	float gyro_bias_deg[3] = {
 		0.f, 0.f, 0.f};		  // keep in deg/s (filter expects deg/s input)
-	float accel_fudge = 1.0f; // multiply ax/ay/az (m/s²) by this before filter
+	float accel_fudge = 1.0f; // multiply ax/ay/az (g) by this before filter
 
 	auto quick_cal = [&](float seconds = 1.5f)
 	{
@@ -342,7 +342,7 @@ extern "C" void FusionTask(void *pv)
 				sum_gz += s.gz;
 				const double an =
 					std::sqrt((double)s.ax * s.ax + (double)s.ay * s.ay +
-							  (double)s.az * s.az); // m/s²
+							  (double)s.az * s.az); // g (gravity units)
 				sum_anorm += an;
 				++n;
 			}
@@ -357,7 +357,7 @@ extern "C" void FusionTask(void *pv)
 			const double mean_anorm = sum_anorm / n;
 			if (mean_anorm > 1e-3)
 				accel_fudge =
-					(float)(9.80665 / mean_anorm); // bring |a| to ~1 g
+					(float)(1.0 / mean_anorm); // bring |a| to ~1 g
 
 			ESP_LOGI(TAG,
 					 "QuickCal: n=%d gyro_bias(deg/s)=[%.3f %.3f %.3f], "
@@ -408,7 +408,7 @@ extern "C" void FusionTask(void *pv)
 							   fabsf(imu_corr.gz); // deg/s sum
 			const float mnorm =
 				sqrtf(mag.mx * mag.mx + mag.my * mag.my + mag.mz * mag.mz);
-			const bool accel_ok = (anorm > 8.0f && anorm < 11.5f); // m/s²
+			const bool accel_ok = (anorm > 0.8f && anorm < 1.2f); // g (gravity units)
 			const bool gyro_ok = (gsum < 120.0f);				   // deg/s
 			const bool field_ok =
 				(mnorm > 10.0f && mnorm < 100.0f); // µT plausible
@@ -470,7 +470,7 @@ extern "C" void FusionTask(void *pv)
 					ESP_LOGI(TAG,
 							 "RPY fused= [%.1f, %.1f, %.1f] deg | "
 							 "accRP= [%.1f, %.1f] deg | magY= %.1f deg | "
-							 "|a|=%.2f (expect ~9.8) | "
+							 "|a|=%.2fg (expect ~1.0) | "
 							 "Δr=%.1f Δp=%.1f Δy=%.1f | mag_ok=%s mnorm=%.1f",
 							 rad2deg(st.roll), rad2deg(st.pitch),
 							 rad2deg(st.yaw), rad2deg(roll_acc),

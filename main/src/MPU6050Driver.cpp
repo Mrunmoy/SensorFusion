@@ -99,21 +99,7 @@ bool MPU6050Driver::init()
 			 pwr1, !!(pwr1 & PWR1_SLEEP), (unsigned)(pwr1 & 0x07), cfg,
 			 (unsigned)(cfg & CONFIG_DLPF_MASK), (unsigned)div);
 
-	// (Keep your existing ACCEL_CONFIG / GYRO_CONFIG setup and I2C bypass
-	// enable)
-
-	// Wake device (clear sleep)
-	if (!writeRegister(REG_PWR_MGMT_1, 0x00))
-	{
-		ESP_LOGE(TAG, "Failed to wake device");
-		return false;
-	}
-
-	// Basic config: DLPF, sample rate, ranges
-	if (!writeRegister(REG_SMPLRT_DIV, 0x07))
-		return false; // ~1 kHz/(1+7) = 125 Hz
-	if (!writeRegister(REG_CONFIG, 0x03))
-		return false; // DLPF=3 (approx 44Hz accel, 42Hz gyro)
+	// Set gyro and accel ranges
 	if (!writeRegister(REG_GYRO_CONFIG, 0x00))
 		return false; // ±250 dps
 	if (!writeRegister(REG_ACCEL_CONFIG, 0x00))
@@ -232,9 +218,11 @@ bool MPU6050Driver::readAcceleration(float &ax, float &ay, float &az)
 	int16_t x, y, z;
 	if (!readRawData(REG_ACCEL_XOUT_H, x, y, z))
 		return false;
-	ax = static_cast<float>(x) / ACCEL_LSB_2G * 9.80665f;
-	ay = static_cast<float>(y) / ACCEL_LSB_2G * 9.80665f;
-	az = static_cast<float>(z) / ACCEL_LSB_2G * 9.80665f;
+	// Output in 'g' units (gravity), not m/s²
+	// Complementary filter expects accel in 'g'
+	ax = static_cast<float>(x) / ACCEL_LSB_2G;
+	ay = static_cast<float>(y) / ACCEL_LSB_2G;
+	az = static_cast<float>(z) / ACCEL_LSB_2G;
 	return true;
 }
 
