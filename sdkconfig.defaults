@@ -1,0 +1,35 @@
+# SensorFusion Project Default Configuration
+# This file ensures critical settings persist across target changes and clean builds
+
+# Target chip
+CONFIG_IDF_TARGET="esp32s3"
+
+# WebSocket Support (required for real-time data streaming)
+CONFIG_HTTPD_WS_SUPPORT=y
+
+# WiFi Configuration
+# (Note: SSID and password are set via Kconfig.projbuild)
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP_WIFI_TX_BUFFER_TYPE=1
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=32
+
+# FreeRTOS - Ensure tick rate supports our task timing
+CONFIG_FREERTOS_HZ=1000
+
+# Compiler optimizations
+CONFIG_COMPILER_OPTIMIZATION_DEFAULT=y
+CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_ENABLE=y
+
+# Stack overflow checking
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_PUTHIGHWATERMARK=y
+
+# I2C Configuration
+CONFIG_I2C_ENABLE_DEBUG_LOG=n
+
+# Enable C++ exceptions if needed (currently disabled in CMakeLists)
+# CONFIG_COMPILER_CXX_EXCEPTIONS=n
+
+# Logging
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_MAXIMUM_LEVEL_VERBOSE=y

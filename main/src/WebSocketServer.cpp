@@ -51,9 +51,6 @@ void WebSocketServer::start() {
             .method   = HTTP_GET,
             .handler  = root_handler,
             .user_ctx = nullptr,
-            .is_websocket = true,
-            .handle_ws_control_frames = true,
-            .supported_subprotocol = nullptr,
         };
 
         httpd_register_uri_handler(server, &ws_uri);
@@ -68,7 +65,7 @@ void WebSocketServer::start() {
 // Send message to the WebSocket client (if connected)
 void WebSocketServer::broadcast(const char* message) {
     if (client_fd < 0) {
-        ESP_LOGW(TAG, "No active WebSocket client.");
+        // Silently return if no client connected (spam reduction)
         return;
     }
 

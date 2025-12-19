@@ -18,8 +18,10 @@
 
 #include "fusion/Complementary.hpp"
 #include "fusion/FusionAlgo.hpp"
+#include "WebSocketServer.hpp"
 
 #include <math.h>
+#include <stdio.h>
 
 namespace
 {
@@ -317,6 +319,11 @@ extern "C" void FusionTask(void *pv)
 	algo->init(storage.ptr(), &cfg);
 	// ------------------------------------------------------------------
 
+	// --- Wait for gyro to stabilize after power-up (MPU6050 datasheet recommends this)
+	ESP_LOGI(TAG, "Waiting 3 seconds for gyroscope to stabilize...");
+	vTaskDelay(pdMS_TO_TICKS(3000));  // 3 second startup delay
+	ESP_LOGI(TAG, "Gyro stabilization complete, starting calibration");
+
 	// --- quick "still" calibration (1.5 s): gyro bias (deg/s) + accel scale
 	// fudge
 	float gyro_bias_deg[3] = {
@@ -417,11 +424,10 @@ extern "C" void FusionTask(void *pv)
 			MagRaw mag_use = mag;
 			if (!mag_ok)
 			{
-				// Many filters ignore NaN inputs; if yours does not, you can
-				// set to zero.
-				mag_use.mx = NAN;
-				mag_use.my = NAN;
-				mag_use.mz = NAN;
+				// Set to zero so filter knows mag is unavailable (have_mag check)
+				mag_use.mx = 0.0f;
+				mag_use.my = 0.0f;
+				mag_use.mz = 0.0f;
 			}
 
 			fusion::Inputs in{};
@@ -436,6 +442,25 @@ extern "C" void FusionTask(void *pv)
 			st = out.state;
 			ctx->reg->write<SFKey::FUSION_STATE>(st);
 
+			// ---- Broadcast to WebSocket (20 Hz update rate) ----
+			{
+				static uint32_t ws_counter = 0;
+				if ((++ws_counter % 10) == 0) // Every 10th fusion step = 20 Hz
+				{
+					// Check for valid values before broadcasting (avoid NaN)
+					if (std::isfinite(st.roll) && std::isfinite(st.pitch) && std::isfinite(st.yaw))
+					{
+						char json[256];
+						snprintf(json, sizeof(json),
+							"{\"imu\":{\"roll\":%.2f,\"pitch\":%.2f,\"yaw\":%.2f},"
+							"\"environment\":{\"temperature\":%.1f,\"humidity\":0.0,\"air_quality\":50.0}}",
+							rad2deg(st.roll), rad2deg(st.pitch), rad2deg(st.yaw),
+							baro.temp_c);
+						WebSocketServer::broadcast(json);
+					}
+				}
+			}
+
 			// ---- DEBUG reference angles vs fused --------------------------
 			{
 				const float ax = imu_corr.ax, ay = imu_corr.ay,
@@ -444,7 +469,7 @@ extern "C" void FusionTask(void *pv)
 
 				// Accel-only tilt (radians), wrap to [-pi, pi]
 				float roll_acc = atan2f(ay, sqrtf(ax * ax + az * az));
-				float pitch_acc = atan2f(-ax, az);
+				float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az * az));
 				roll_acc = wrap_pi(roll_acc);
 				pitch_acc = wrap_pi(pitch_acc);
 

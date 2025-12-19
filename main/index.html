@@ -26,17 +26,23 @@
     <div>Temp: <span id="temp">--</span>°C</div>
     <div>Humidity: <span id="humidity">--</span>%</div>
     <div>Air Quality: <span id="airq">--</span></div>
+    <div>Status: <span id="status">Loading...</span></div>
+    <div>WS: <span id="ws-status">Disconnected</span></div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('Service worker registered.'))
-      .catch(err => console.error('Service worker registration failed:', err));
-  }
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js" crossorigin="anonymous"></script>
 
   <script>
+    // Check if Three.js loaded
+    const statusElem = document.getElementById('status');
+    const wsStatusElem = document.getElementById('ws-status');
+
+    if (typeof THREE === 'undefined') {
+      statusElem.textContent = 'Three.js failed to load';
+      statusElem.style.color = 'red';
+      throw new Error('Three.js not loaded - check browser console');
+    }
+    statusElem.textContent = 'Three.js OK';
+
     // Basic Three.js Setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -95,7 +101,7 @@
       if (data.imu) {
         // Convert degrees to radians for Three.js
         cube.rotation.x = THREE.MathUtils.degToRad(data.imu.pitch || 0);
-        cube.rotation.y = THREE.MathUtils.degToRad(data.imu.yaw || 0);
+        cube.rotation.y = -THREE.MathUtils.degToRad(data.imu.yaw || 0);  // Inverted for correct rotation direction
         cube.rotation.z = THREE.MathUtils.degToRad(data.imu.roll || 0);
       }
 
@@ -120,8 +126,21 @@
       }
     };
 
-    ws.onopen = () => console.log('WebSocket connected');
-    ws.onclose = () => console.warn('WebSocket disconnected');
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      wsStatusElem.textContent = 'Connected';
+      wsStatusElem.style.color = 'lime';
+    };
+    ws.onclose = () => {
+      console.warn('WebSocket disconnected');
+      wsStatusElem.textContent = 'Disconnected';
+      wsStatusElem.style.color = 'red';
+    };
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      wsStatusElem.textContent = 'Error';
+      wsStatusElem.style.color = 'orange';
+    };
   </script>
 </body>
 </html>
