@@ -42,7 +42,7 @@ private:
 
     static float accelLsbPerG(AccelRange r);
     static float gyroLsbPerDps(GyroRange r);
-    static int16_t toInt16BE(const uint8_t* buf);
+    static int16_t sensorToHost16(const uint8_t* buf);
 };
 
 } // namespace sf

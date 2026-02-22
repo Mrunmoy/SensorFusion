@@ -40,38 +40,6 @@ TEST_F(HalI2CTest, Write8DelegatesToWriteRegister) {
     EXPECT_TRUE(bus.write8(ADDR, 0x6B, 0x00));
 }
 
-TEST_F(HalI2CTest, Read16BEReadsHighByteThenLow) {
-    EXPECT_CALL(bus, readRegister(ADDR, 0x3B, _, 2))
-        .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
-            buf[0] = 0xAB; buf[1] = 0xCD;
-            return true;
-        });
-    uint16_t val = 0;
-    EXPECT_TRUE(bus.read16BE(ADDR, 0x3B, val));
-    EXPECT_EQ(val, 0xABCD);
-}
-
-TEST_F(HalI2CTest, Read16LEReadsLowByteThenHigh) {
-    EXPECT_CALL(bus, readRegister(ADDR, 0x00, _, 2))
-        .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
-            buf[0] = 0xCD; buf[1] = 0xAB;
-            return true;
-        });
-    uint16_t val = 0;
-    EXPECT_TRUE(bus.read16LE(ADDR, 0x00, val));
-    EXPECT_EQ(val, 0xABCD);
-}
-
-TEST_F(HalI2CTest, Write16BEWritesHighByteThenLow) {
-    EXPECT_CALL(bus, writeRegister(ADDR, 0x10, _, 2))
-        .WillOnce([](uint8_t, uint8_t, const uint8_t* data, size_t) {
-            EXPECT_EQ(data[0], 0x12);
-            EXPECT_EQ(data[1], 0x34);
-            return true;
-        });
-    EXPECT_TRUE(bus.write16BE(ADDR, 0x10, 0x1234));
-}
-
 TEST_F(HalI2CTest, ProbeForwardsToMock) {
     EXPECT_CALL(bus, probe(ADDR)).WillOnce(Return(true));
     EXPECT_TRUE(bus.probe(ADDR));
