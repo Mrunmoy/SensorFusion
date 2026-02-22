@@ -5,6 +5,7 @@
 #include "MockDelayProvider.hpp"
 #include "MockGpioInterrupt.hpp"
 #include "MockSPIBus.hpp"
+#include "MockNvStore.hpp"
 
 using namespace sf::test;
 using ::testing::_;
@@ -138,4 +139,33 @@ TEST_F(HalSPITest, ReadRegisterMultiByte) {
     EXPECT_TRUE(spi.readRegister(0x28, buf, 6));
     EXPECT_EQ(buf[0], 0);
     EXPECT_EQ(buf[5], 5);
+}
+
+// --- NV Store Tests ---
+
+TEST(HalNvStoreTest, ReadWriteRoundTrip) {
+    MockNvStore nv;
+    nv.useBackingStore(256);
+
+    const uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF};
+    EXPECT_TRUE(nv.write(0x10, data, 4));
+
+    uint8_t out[4] = {};
+    EXPECT_TRUE(nv.read(0x10, out, 4));
+    EXPECT_EQ(out[0], 0xDE);
+    EXPECT_EQ(out[3], 0xEF);
+}
+
+TEST(HalNvStoreTest, OutOfBoundsReadFails) {
+    MockNvStore nv;
+    nv.useBackingStore(16);
+
+    uint8_t buf[4];
+    EXPECT_FALSE(nv.read(14, buf, 4)); // 14+4 > 16
+}
+
+TEST(HalNvStoreTest, CapacityReturnsSize) {
+    MockNvStore nv;
+    nv.useBackingStore(512);
+    EXPECT_EQ(nv.capacity(), 512u);
 }
