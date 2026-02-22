@@ -18,4 +18,5 @@ target_sources(sensorfusion_drivers PRIVATE
     mpu6050/MPU6050.cpp
     qmc5883l/QMC5883L.cpp
     bmp180/BMP180.cpp
+    adxl345/ADXL345.cpp
 )

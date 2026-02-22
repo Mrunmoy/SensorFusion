@@ -2,11 +2,10 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "SensorTypes.hpp"
 #include <cstdint>
 
 namespace sf {
-
-struct MagData { float x, y, z; };  // in µT
 
 enum class MagOsr   : uint8_t { OSR_512 = 0, OSR_256 = 1, OSR_128 = 2, OSR_64 = 3 };
 enum class MagOdr   : uint8_t { HZ_10 = 0, HZ_50 = 1, HZ_100 = 2, HZ_200 = 3 };
