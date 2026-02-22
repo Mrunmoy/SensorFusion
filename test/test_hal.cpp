@@ -4,6 +4,7 @@
 #include "MockAdcChannel.hpp"
 #include "MockDelayProvider.hpp"
 #include "MockGpioInterrupt.hpp"
+#include "MockSPIBus.hpp"
 
 using namespace sf::test;
 using ::testing::_;
@@ -101,4 +102,40 @@ TEST(HalGpioTest, CaptureAndFireCallback) {
     EXPECT_FALSE(fired);
     gpio.fire();
     EXPECT_TRUE(fired);
+}
+
+// --- SPI Bus Tests ---
+
+class HalSPITest : public ::testing::Test {
+protected:
+    MockSPIBus spi;
+};
+
+TEST_F(HalSPITest, Read8DelegatesToReadRegister) {
+    EXPECT_CALL(spi, readRegister(0x0F, _, 1))
+        .WillOnce([](uint8_t, uint8_t* buf, size_t) {
+            buf[0] = 0x6C;
+            return true;
+        });
+    uint8_t val = 0;
+    EXPECT_TRUE(spi.read8(0x0F, val));
+    EXPECT_EQ(val, 0x6C);
+}
+
+TEST_F(HalSPITest, Write8DelegatesToWriteRegister) {
+    EXPECT_CALL(spi, writeRegister(0x10, _, 1))
+        .WillOnce(Return(true));
+    EXPECT_TRUE(spi.write8(0x10, 0x52));
+}
+
+TEST_F(HalSPITest, ReadRegisterMultiByte) {
+    EXPECT_CALL(spi, readRegister(0x28, _, 6))
+        .WillOnce([](uint8_t, uint8_t* buf, size_t) {
+            for (int i = 0; i < 6; ++i) buf[i] = static_cast<uint8_t>(i);
+            return true;
+        });
+    uint8_t buf[6] = {};
+    EXPECT_TRUE(spi.readRegister(0x28, buf, 6));
+    EXPECT_EQ(buf[0], 0);
+    EXPECT_EQ(buf[5], 5);
 }
