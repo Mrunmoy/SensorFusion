@@ -6,6 +6,9 @@ namespace reg {
     constexpr uint8_t DEVID       = 0x00;
     constexpr uint8_t BW_RATE     = 0x2C;
     constexpr uint8_t POWER_CTL   = 0x2D;
+    constexpr uint8_t INT_ENABLE  = 0x2E;
+    constexpr uint8_t INT_MAP     = 0x2F;
+    constexpr uint8_t INT_SOURCE  = 0x30;
     constexpr uint8_t DATA_FORMAT = 0x31;
     constexpr uint8_t DATAX0      = 0x32;
 }
@@ -51,6 +54,41 @@ bool ADXL345::readAccel(AccelData& out) {
     out.y = static_cast<float>(sensorToHost16(&buf[2])) * MG_PER_LSB;
     out.z = static_cast<float>(sensorToHost16(&buf[4])) * MG_PER_LSB;
     return true;
+}
+
+bool ADXL345::enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                       IGpioInterrupt::Callback cb, void* ctx) {
+    if (!intPin) return false;
+    const uint8_t addr = cfg_.address;
+
+    // Route DATA_READY (bit 7) to INT1 pin (bit 7 = 0 in INT_MAP → INT1)
+    if (!bus_.write8(addr, reg::INT_MAP, 0x00)) return false;
+
+    // Enable DATA_READY interrupt (bit 7)
+    if (!bus_.write8(addr, reg::INT_ENABLE, 0x80)) return false;
+
+    // ADXL345 INT pins are active high by default
+    if (!intPin->enable(GpioEdge::RISING, cb, ctx)) return false;
+
+    intPin_ = intPin;
+    return true;
+}
+
+bool ADXL345::disableDataReadyInterrupt() {
+    const uint8_t addr = cfg_.address;
+
+    // Disable all interrupts
+    if (!bus_.write8(addr, reg::INT_ENABLE, 0x00)) return false;
+
+    if (intPin_) {
+        intPin_->disable();
+        intPin_ = nullptr;
+    }
+    return true;
+}
+
+bool ADXL345::clearInterrupt(uint8_t& source) {
+    return bus_.read8(cfg_.address, reg::INT_SOURCE, source);
 }
 
 } // namespace sf
