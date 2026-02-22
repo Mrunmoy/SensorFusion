@@ -24,7 +24,10 @@ target_include_directories(driver_tests PRIVATE
 
 target_compile_features(driver_tests PRIVATE cxx_std_17)
 
-target_sources(driver_tests PRIVATE placeholder_test.cpp)
+target_sources(driver_tests PRIVATE
+    placeholder_test.cpp
+    test_hal.cpp
+)
 
 include(GoogleTest)
 gtest_discover_tests(driver_tests)
