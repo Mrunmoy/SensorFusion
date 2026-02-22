@@ -32,7 +32,7 @@ float MPU6050::gyroLsbPerDps(GyroRange r) {
     return table[static_cast<uint8_t>(r)];
 }
 
-int16_t MPU6050::toInt16BE(const uint8_t* buf) {
+int16_t MPU6050::sensorToHost16(const uint8_t* buf) {
     return static_cast<int16_t>((buf[0] << 8) | buf[1]);
 }
 
@@ -77,25 +77,25 @@ bool MPU6050::init() {
 bool MPU6050::readAccel(AccelData& out) {
     uint8_t buf[6];
     if (!bus_.readRegister(cfg_.address, reg::ACCEL_XOUT_H, buf, 6)) return false;
-    out.x = static_cast<float>(toInt16BE(&buf[0])) / accelScale_;
-    out.y = static_cast<float>(toInt16BE(&buf[2])) / accelScale_;
-    out.z = static_cast<float>(toInt16BE(&buf[4])) / accelScale_;
+    out.x = static_cast<float>(sensorToHost16(&buf[0])) / accelScale_;
+    out.y = static_cast<float>(sensorToHost16(&buf[2])) / accelScale_;
+    out.z = static_cast<float>(sensorToHost16(&buf[4])) / accelScale_;
     return true;
 }
 
 bool MPU6050::readGyro(GyroData& out) {
     uint8_t buf[6];
     if (!bus_.readRegister(cfg_.address, reg::GYRO_XOUT_H, buf, 6)) return false;
-    out.x = static_cast<float>(toInt16BE(&buf[0])) / gyroScale_;
-    out.y = static_cast<float>(toInt16BE(&buf[2])) / gyroScale_;
-    out.z = static_cast<float>(toInt16BE(&buf[4])) / gyroScale_;
+    out.x = static_cast<float>(sensorToHost16(&buf[0])) / gyroScale_;
+    out.y = static_cast<float>(sensorToHost16(&buf[2])) / gyroScale_;
+    out.z = static_cast<float>(sensorToHost16(&buf[4])) / gyroScale_;
     return true;
 }
 
 bool MPU6050::readTemperature(float& tempC) {
     uint8_t buf[2];
     if (!bus_.readRegister(cfg_.address, reg::TEMP_OUT_H, buf, 2)) return false;
-    int16_t raw = toInt16BE(buf);
+    int16_t raw = sensorToHost16(buf);
     tempC = static_cast<float>(raw) / 340.0f + 36.53f;
     return true;
 }
@@ -104,16 +104,16 @@ bool MPU6050::readAll(AccelData& accel, GyroData& gyro, float& tempC) {
     uint8_t buf[14];
     if (!bus_.readRegister(cfg_.address, reg::ACCEL_XOUT_H, buf, 14)) return false;
 
-    accel.x = static_cast<float>(toInt16BE(&buf[0])) / accelScale_;
-    accel.y = static_cast<float>(toInt16BE(&buf[2])) / accelScale_;
-    accel.z = static_cast<float>(toInt16BE(&buf[4])) / accelScale_;
+    accel.x = static_cast<float>(sensorToHost16(&buf[0])) / accelScale_;
+    accel.y = static_cast<float>(sensorToHost16(&buf[2])) / accelScale_;
+    accel.z = static_cast<float>(sensorToHost16(&buf[4])) / accelScale_;
 
-    int16_t rawTemp = toInt16BE(&buf[6]);
+    int16_t rawTemp = sensorToHost16(&buf[6]);
     tempC = static_cast<float>(rawTemp) / 340.0f + 36.53f;
 
-    gyro.x = static_cast<float>(toInt16BE(&buf[8])) / gyroScale_;
-    gyro.y = static_cast<float>(toInt16BE(&buf[10])) / gyroScale_;
-    gyro.z = static_cast<float>(toInt16BE(&buf[12])) / gyroScale_;
+    gyro.x = static_cast<float>(sensorToHost16(&buf[8])) / gyroScale_;
+    gyro.y = static_cast<float>(sensorToHost16(&buf[10])) / gyroScale_;
+    gyro.z = static_cast<float>(sensorToHost16(&buf[12])) / gyroScale_;
 
     return true;
 }

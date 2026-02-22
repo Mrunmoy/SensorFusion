@@ -27,27 +27,9 @@ public:
         return writeRegister(devAddr, reg, &val, 1);
     }
 
-    bool read16BE(uint8_t devAddr, uint8_t reg, uint16_t& out) {
-        uint8_t buf[2];
-        if (!readRegister(devAddr, reg, buf, 2)) return false;
-        out = static_cast<uint16_t>((buf[0] << 8) | buf[1]);
-        return true;
-    }
-
-    bool read16LE(uint8_t devAddr, uint8_t reg, uint16_t& out) {
-        uint8_t buf[2];
-        if (!readRegister(devAddr, reg, buf, 2)) return false;
-        out = static_cast<uint16_t>((buf[1] << 8) | buf[0]);
-        return true;
-    }
-
-    bool write16BE(uint8_t devAddr, uint8_t reg, uint16_t val) {
-        uint8_t buf[2] = {
-            static_cast<uint8_t>(val >> 8),
-            static_cast<uint8_t>(val & 0xFF)
-        };
-        return writeRegister(devAddr, reg, buf, 2);
-    }
+    // Multi-byte reads/writes: use readRegister/writeRegister directly.
+    // Each driver handles its own sensor-to-host byte order conversion
+    // internally via sensorToHost16() — no endianness leaks into the bus API.
 };
 
 } // namespace sf

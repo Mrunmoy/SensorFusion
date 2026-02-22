@@ -17,7 +17,7 @@ ADXL345::ADXL345(II2CBus& bus, const ADXL345Config& cfg)
     : bus_(bus), cfg_(cfg)
 {}
 
-int16_t ADXL345::toInt16LE(const uint8_t* buf) {
+int16_t ADXL345::sensorToHost16(const uint8_t* buf) {
     return static_cast<int16_t>((buf[1] << 8) | buf[0]);
 }
 
@@ -47,9 +47,9 @@ bool ADXL345::readAccel(AccelData& out) {
     uint8_t buf[6];
     if (!bus_.readRegister(cfg_.address, reg::DATAX0, buf, 6)) return false;
 
-    out.x = static_cast<float>(toInt16LE(&buf[0])) * MG_PER_LSB;
-    out.y = static_cast<float>(toInt16LE(&buf[2])) * MG_PER_LSB;
-    out.z = static_cast<float>(toInt16LE(&buf[4])) * MG_PER_LSB;
+    out.x = static_cast<float>(sensorToHost16(&buf[0])) * MG_PER_LSB;
+    out.y = static_cast<float>(sensorToHost16(&buf[2])) * MG_PER_LSB;
+    out.z = static_cast<float>(sensorToHost16(&buf[4])) * MG_PER_LSB;
     return true;
 }
 

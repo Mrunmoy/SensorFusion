@@ -22,7 +22,7 @@ float QMC5883L::lsbPerUT(MagRange r) {
     return (r == MagRange::GAUSS_2) ? 1200.0f : 300.0f;
 }
 
-int16_t QMC5883L::toInt16LE(const uint8_t* buf) {
+int16_t QMC5883L::sensorToHost16(const uint8_t* buf) {
     return static_cast<int16_t>((buf[1] << 8) | buf[0]);
 }
 
@@ -57,9 +57,9 @@ bool QMC5883L::isDataReady(bool& ready) {
 bool QMC5883L::readRaw(int16_t& x, int16_t& y, int16_t& z) {
     uint8_t buf[6];
     if (!bus_.readRegister(cfg_.address, reg::DATA_X_LSB, buf, 6)) return false;
-    x = toInt16LE(&buf[0]);
-    y = toInt16LE(&buf[2]);
-    z = toInt16LE(&buf[4]);
+    x = sensorToHost16(&buf[0]);
+    y = sensorToHost16(&buf[2]);
+    z = sensorToHost16(&buf[4]);
     return true;
 }
 

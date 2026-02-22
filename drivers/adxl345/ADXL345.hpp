@@ -25,7 +25,7 @@ private:
     II2CBus& bus_;
     ADXL345Config cfg_;
 
-    static int16_t toInt16LE(const uint8_t* buf);
+    static int16_t sensorToHost16(const uint8_t* buf);
 };
 
 } // namespace sf
