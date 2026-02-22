@@ -34,6 +34,7 @@ target_sources(driver_tests PRIVATE
     test_ad8232.cpp
     test_bmm350.cpp
     test_lps22df.cpp
+    test_lsm6dso.cpp
 )
 
 include(GoogleTest)
