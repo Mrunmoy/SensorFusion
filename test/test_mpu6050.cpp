@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include "MockI2CBus.hpp"
 #include "MockDelayProvider.hpp"
+#include "MockGpioInterrupt.hpp"
 #include "MPU6050.hpp"
 
 using namespace sf;
@@ -17,6 +18,8 @@ static constexpr uint8_t REG_CONFIG  = 0x1A;
 static constexpr uint8_t REG_GYRO_CFG  = 0x1B;
 static constexpr uint8_t REG_ACCEL_CFG = 0x1C;
 static constexpr uint8_t REG_INT_PIN   = 0x37;
+static constexpr uint8_t REG_INT_EN    = 0x38;
+static constexpr uint8_t REG_INT_STAT  = 0x3A;
 static constexpr uint8_t REG_ACCEL_OUT = 0x3B;
 static constexpr uint8_t REG_GYRO_OUT  = 0x43;
 static constexpr uint8_t REG_TEMP_OUT  = 0x41;
@@ -255,4 +258,93 @@ TEST_F(MPU6050Test, ReadAccelBusFail) {
         .WillOnce(Return(false));
     AccelData a;
     EXPECT_FALSE(imu.readAccel(a));
+}
+
+// --- Interrupt tests ---
+
+TEST_F(MPU6050Test, EnableDataReadyInterrupt) {
+    expectFullInit();
+    MPU6050 imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    MockGpioInterrupt intPin;
+    intPin.captureCallback();
+
+    // Expect INT_PIN_CFG write (active low, latch, clear-on-read, preserve bypass)
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_PIN, _, 1))
+        .WillOnce(Return(true));
+    // Expect INT_ENABLE = 0x01 (DATA_RDY_EN)
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_EN, _, 1))
+        .WillOnce([](uint8_t, uint8_t, const uint8_t* data, size_t) {
+            EXPECT_EQ(data[0], 0x01);
+            return true;
+        });
+
+    bool called = false;
+    auto cb = [](void* ctx) { *static_cast<bool*>(ctx) = true; };
+    EXPECT_TRUE(imu.enableDataReadyInterrupt(&intPin, cb, &called));
+
+    // Simulate interrupt firing
+    intPin.fire();
+    EXPECT_TRUE(called);
+}
+
+TEST_F(MPU6050Test, DisableDataReadyInterrupt) {
+    expectFullInit();
+    MPU6050 imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    MockGpioInterrupt intPin;
+    intPin.captureCallback();
+
+    // Enable first
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_PIN, _, 1))
+        .WillOnce(Return(true))
+        .RetiresOnSaturation();
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_EN, _, 1))
+        .WillOnce(Return(true))  // enable
+        .WillOnce([](uint8_t, uint8_t, const uint8_t* data, size_t) {
+            EXPECT_EQ(data[0], 0x00);  // disable
+            return true;
+        });
+    EXPECT_CALL(intPin, disable()).WillOnce(Return(true));
+
+    EXPECT_TRUE(imu.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+    EXPECT_TRUE(imu.disableDataReadyInterrupt());
+}
+
+TEST_F(MPU6050Test, ClearInterrupt) {
+    expectFullInit();
+    MPU6050 imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    EXPECT_CALL(bus, readRegister(ADDR, REG_INT_STAT, _, 1))
+        .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
+            buf[0] = 0x01; // DATA_RDY_INT
+            return true;
+        });
+
+    uint8_t status = 0;
+    EXPECT_TRUE(imu.clearInterrupt(status));
+    EXPECT_EQ(status & 0x01, 0x01);
+}
+
+TEST_F(MPU6050Test, EnableInterruptBusFail) {
+    expectFullInit();
+    MPU6050 imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    MockGpioInterrupt intPin;
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_PIN, _, 1))
+        .WillOnce(Return(false));
+
+    EXPECT_FALSE(imu.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+}
+
+TEST_F(MPU6050Test, EnableInterruptNullPinFails) {
+    expectFullInit();
+    MPU6050 imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    EXPECT_FALSE(imu.enableDataReadyInterrupt(nullptr, nullptr, nullptr));
 }

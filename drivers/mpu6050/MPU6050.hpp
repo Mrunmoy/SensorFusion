@@ -2,6 +2,7 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "IGpioInterrupt.hpp"
 #include "SensorTypes.hpp"
 #include <cstdint>
 
@@ -33,12 +34,19 @@ public:
     bool readTemperature(float& tempC);
     bool readAll(AccelData& accel, GyroData& gyro, float& tempC);
 
+    bool enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                  IGpioInterrupt::Callback cb, void* ctx);
+    bool disableDataReadyInterrupt();
+    bool clearInterrupt(uint8_t& status);
+
 private:
     II2CBus& bus_;
     IDelayProvider& delay_;
     MPU6050Config cfg_;
     float accelScale_;
     float gyroScale_;
+
+    IGpioInterrupt* intPin_ = nullptr;
 
     static float accelLsbPerG(AccelRange r);
     static float gyroLsbPerDps(GyroRange r);

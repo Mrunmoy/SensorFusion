@@ -8,6 +8,8 @@ namespace reg {
     constexpr uint8_t GYRO_CONFIG  = 0x1B;
     constexpr uint8_t ACCEL_CONFIG = 0x1C;
     constexpr uint8_t INT_PIN_CFG  = 0x37;
+    constexpr uint8_t INT_ENABLE   = 0x38;
+    constexpr uint8_t INT_STATUS   = 0x3A;
     constexpr uint8_t ACCEL_XOUT_H = 0x3B;
     constexpr uint8_t TEMP_OUT_H   = 0x41;
     constexpr uint8_t GYRO_XOUT_H  = 0x43;
@@ -116,6 +118,44 @@ bool MPU6050::readAll(AccelData& accel, GyroData& gyro, float& tempC) {
     gyro.z = static_cast<float>(sensorToHost16(&buf[12])) / gyroScale_;
 
     return true;
+}
+
+bool MPU6050::enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                       IGpioInterrupt::Callback cb, void* ctx) {
+    if (!intPin) return false;
+    const uint8_t addr = cfg_.address;
+
+    // INT_PIN_CFG: active low (bit 7), latch until cleared (bit 5),
+    // clear on any read (bit 4), preserve bypass if enabled (bit 1)
+    uint8_t pinCfg = 0xB0; // active-low | latch | clear-on-read
+    if (cfg_.i2cBypass) pinCfg |= 0x02;
+    if (!bus_.write8(addr, reg::INT_PIN_CFG, pinCfg)) return false;
+
+    // Enable data ready interrupt
+    if (!bus_.write8(addr, reg::INT_ENABLE, 0x01)) return false;
+
+    // Attach MCU-side GPIO interrupt (active low → falling edge)
+    if (!intPin->enable(GpioEdge::FALLING, cb, ctx)) return false;
+
+    intPin_ = intPin;
+    return true;
+}
+
+bool MPU6050::disableDataReadyInterrupt() {
+    const uint8_t addr = cfg_.address;
+
+    // Disable all interrupts
+    if (!bus_.write8(addr, reg::INT_ENABLE, 0x00)) return false;
+
+    if (intPin_) {
+        intPin_->disable();
+        intPin_ = nullptr;
+    }
+    return true;
+}
+
+bool MPU6050::clearInterrupt(uint8_t& status) {
+    return bus_.read8(cfg_.address, reg::INT_STATUS, status);
 }
 
 } // namespace sf
