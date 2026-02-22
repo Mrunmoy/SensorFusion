@@ -1,6 +1,7 @@
 #pragma once
 
 #include "II2CBus.hpp"
+#include "IGpioInterrupt.hpp"
 #include "SensorTypes.hpp"
 #include <cstdint>
 
@@ -21,9 +22,16 @@ public:
     bool init();
     bool readAccel(AccelData& out);
 
+    bool enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                  IGpioInterrupt::Callback cb, void* ctx);
+    bool disableDataReadyInterrupt();
+    bool clearInterrupt(uint8_t& source);
+
 private:
     II2CBus& bus_;
     ADXL345Config cfg_;
+
+    IGpioInterrupt* intPin_ = nullptr;
 
     static int16_t sensorToHost16(const uint8_t* buf);
 };
