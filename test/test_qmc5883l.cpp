@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include "MockI2CBus.hpp"
 #include "MockDelayProvider.hpp"
+#include "MockGpioInterrupt.hpp"
 #include "QMC5883L.hpp"
 #include <cmath>
 
@@ -163,4 +164,71 @@ TEST_F(QMC5883LTest, ReadBusFail) {
 
     MagData m;
     EXPECT_FALSE(mag.readMicroTesla(m));
+}
+
+// --- Interrupt tests ---
+
+TEST_F(QMC5883LTest, EnableDataReadyInterrupt) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
+    MockGpioInterrupt intPin;
+    intPin.captureCallback();
+
+    // Expect CTRL2 write to enable interrupt (bit 0 = INT_ENB)
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_CTRL2, _, 1))
+        .WillOnce([](uint8_t, uint8_t, const uint8_t* data, size_t) {
+            EXPECT_EQ(data[0], 0x01);
+            return true;
+        });
+
+    bool called = false;
+    auto cb = [](void* ctx) { *static_cast<bool*>(ctx) = true; };
+    EXPECT_TRUE(mag.enableDataReadyInterrupt(&intPin, cb, &called));
+
+    // Simulate interrupt firing
+    intPin.fire();
+    EXPECT_TRUE(called);
+}
+
+TEST_F(QMC5883LTest, DisableDataReadyInterrupt) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
+    MockGpioInterrupt intPin;
+    intPin.captureCallback();
+
+    // Enable first
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_CTRL2, _, 1))
+        .WillOnce(Return(true))   // enable
+        .WillOnce([](uint8_t, uint8_t, const uint8_t* data, size_t) {
+            EXPECT_EQ(data[0], 0x00);  // disable
+            return true;
+        });
+    EXPECT_CALL(intPin, disable()).WillOnce(Return(true));
+
+    EXPECT_TRUE(mag.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+    EXPECT_TRUE(mag.disableDataReadyInterrupt());
+}
+
+TEST_F(QMC5883LTest, EnableInterruptBusFail) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
+    MockGpioInterrupt intPin;
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_CTRL2, _, 1))
+        .WillOnce(Return(false));
+
+    EXPECT_FALSE(mag.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+}
+
+TEST_F(QMC5883LTest, EnableInterruptNullPinFails) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
+    EXPECT_FALSE(mag.enableDataReadyInterrupt(nullptr, nullptr, nullptr));
 }
