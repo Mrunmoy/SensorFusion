@@ -13,4 +13,7 @@ target_include_directories(sensorfusion_drivers PUBLIC
 
 target_compile_features(sensorfusion_drivers PUBLIC cxx_std_17)
 
-target_sources(sensorfusion_drivers PRIVATE placeholder.cpp)
+target_sources(sensorfusion_drivers PRIVATE
+    placeholder.cpp
+    mpu6050/MPU6050.cpp
+)
