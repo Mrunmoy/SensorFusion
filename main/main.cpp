@@ -1,37 +1,18 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_log.h"
-#include "esp_netif.h"
+// SensorFusion - Portable Sensor Drivers
+// Entry point stub — platform-specific main goes here.
+//
+// This project provides platform-agnostic drivers for:
+//   - MPU6050  (6-axis IMU: accelerometer + gyroscope)
+//   - QMC5883L (3-axis magnetometer)
+//   - BMP180   (barometric pressure + temperature)
+//   - ADXL345  (3-axis accelerometer)
+//   - AD8232   (ECG analog frontend)
+//
+// Drivers depend only on HAL interfaces (II2CBus, IAdcChannel, IDelayProvider)
+// and can run on any platform: ESP32, nRF52, STM32
+// with any RTOS: FreeRTOS, Zephyr, ThreadX — or bare-metal.
 
-#include "WifiManager.hpp"
-#include "Heartbeat.hpp"
-#include "WebSocketServer.hpp"
-#include "SensorFusionSim.hpp"
-
-extern "C" void app_main()
+int main()
 {
-    // Don't forget to set your Wi-Fi credentials in sdkconfig
-    // CONFIG_ESP_WIFI_SSID="YourSSID"
-    // CONFIG_ESP_WIFI_PASSWORD="YourPassword"
-    ESP_LOGI("APP", "Starting Sensor Fusion App...");
-
-    // WifiManager::startSoftAP();
-    WifiManager::startStation();
-    // Optional: Wait for IP before starting web server
-    esp_netif_ip_info_t ip_info;
-    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-    while (true)
-    {
-        if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0)
-            break;
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    Heartbeat::start();
-    WebSocketServer::start();
-    SensorFusionSim::start();
-
-    while (true)
-    {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    return 0;
 }
