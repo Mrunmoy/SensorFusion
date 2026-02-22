@@ -19,4 +19,5 @@ target_sources(sensorfusion_drivers PRIVATE
     qmc5883l/QMC5883L.cpp
     bmp180/BMP180.cpp
     adxl345/ADXL345.cpp
+    ad8232/AD8232.cpp
 )
