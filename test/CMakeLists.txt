@@ -27,6 +27,7 @@ target_compile_features(driver_tests PRIVATE cxx_std_17)
 target_sources(driver_tests PRIVATE
     placeholder_test.cpp
     test_hal.cpp
+    test_mpu6050.cpp
 )
 
 include(GoogleTest)
