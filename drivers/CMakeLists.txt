@@ -11,6 +11,7 @@ target_include_directories(sensorfusion_drivers PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/ad8232
     ${CMAKE_CURRENT_SOURCE_DIR}/bmm350
     ${CMAKE_CURRENT_SOURCE_DIR}/lps22df
+    ${CMAKE_CURRENT_SOURCE_DIR}/lsm6dso
 )
 
 target_compile_features(sensorfusion_drivers PUBLIC cxx_std_17)
@@ -24,4 +25,5 @@ target_sources(sensorfusion_drivers PRIVATE
     ad8232/AD8232.cpp
     bmm350/BMM350.cpp
     lps22df/LPS22DF.cpp
+    lsm6dso/LSM6DSO.cpp
 )
