@@ -2,12 +2,10 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "SensorTypes.hpp"
 #include <cstdint>
 
 namespace sf {
-
-struct AccelData { float x, y, z; };
-struct GyroData  { float x, y, z; };
 
 enum class AccelRange : uint8_t { G2 = 0, G4 = 1, G8 = 2, G16 = 3 };
 enum class GyroRange  : uint8_t { DPS250 = 0, DPS500 = 1, DPS1000 = 2, DPS2000 = 3 };
