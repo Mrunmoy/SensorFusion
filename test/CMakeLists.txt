@@ -29,6 +29,7 @@ target_sources(driver_tests PRIVATE
     test_hal.cpp
     test_mpu6050.cpp
     test_qmc5883l.cpp
+    test_bmp180.cpp
 )
 
 include(GoogleTest)
