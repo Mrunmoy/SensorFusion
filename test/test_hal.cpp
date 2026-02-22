@@ -3,6 +3,7 @@
 #include "MockI2CBus.hpp"
 #include "MockAdcChannel.hpp"
 #include "MockDelayProvider.hpp"
+#include "MockGpioInterrupt.hpp"
 
 using namespace sf::test;
 using ::testing::_;
@@ -77,4 +78,27 @@ TEST(HalDelayTest, GetTimestampUsReturnsValue) {
     MockDelayProvider delay;
     EXPECT_CALL(delay, getTimestampUs()).WillOnce(Return(123456789ULL));
     EXPECT_EQ(delay.getTimestampUs(), 123456789ULL);
+}
+
+// --- GPIO Interrupt Tests ---
+
+TEST(HalGpioTest, EnableDisable) {
+    MockGpioInterrupt gpio;
+    EXPECT_CALL(gpio, enable(sf::GpioEdge::FALLING, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(gpio, disable()).WillOnce(Return(true));
+    EXPECT_TRUE(gpio.enable(sf::GpioEdge::FALLING, nullptr, nullptr));
+    EXPECT_TRUE(gpio.disable());
+}
+
+TEST(HalGpioTest, CaptureAndFireCallback) {
+    MockGpioInterrupt gpio;
+    gpio.captureCallback();
+
+    bool fired = false;
+    auto cb = [](void* ctx) { *static_cast<bool*>(ctx) = true; };
+
+    EXPECT_TRUE(gpio.enable(sf::GpioEdge::FALLING, cb, &fired));
+    EXPECT_FALSE(fired);
+    gpio.fire();
+    EXPECT_TRUE(fired);
 }
