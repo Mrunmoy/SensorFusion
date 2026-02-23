@@ -2,7 +2,7 @@
 
 namespace sf {
 
-namespace reg {
+namespace {
     constexpr uint8_t CHIP_ID         = 0x00;
     constexpr uint8_t PMU_CMD_AGGR    = 0x04;
     constexpr uint8_t PMU_CMD_AXIS_EN = 0x05;
@@ -69,19 +69,19 @@ bool BMM350::readOtpWord(uint8_t wordAddr, uint16_t& out) {
 
     // Write OTP word address with read command (bit 5 = DIR_READ, bits 4:0 = word addr)
     uint8_t cmd = 0x20 | (wordAddr & 0x1F);
-    if (!bus_.write8(addr, reg::OTP_CMD, cmd)) return false;
+    if (!bus_.write8(addr, OTP_CMD, cmd)) return false;
 
     delay_.delayUs(300);
 
     // Check OTP status
     uint8_t status;
-    if (!bus_.read8(addr, reg::OTP_STATUS, status)) return false;
+    if (!bus_.read8(addr, OTP_STATUS, status)) return false;
     if ((status & 0x01) == 0) return false; // OTP error
 
     // Read data
     uint8_t msb, lsb;
-    if (!bus_.read8(addr, reg::OTP_DATA_MSB, msb)) return false;
-    if (!bus_.read8(addr, reg::OTP_DATA_LSB, lsb)) return false;
+    if (!bus_.read8(addr, OTP_DATA_MSB, msb)) return false;
+    if (!bus_.read8(addr, OTP_DATA_LSB, lsb)) return false;
 
     out = static_cast<uint16_t>((msb << 8) | lsb);
     return true;
@@ -131,20 +131,20 @@ bool BMM350::setNormalMode() {
     const uint8_t addr = cfg_.address;
 
     // Enable all axes
-    if (!bus_.write8(addr, reg::PMU_CMD_AXIS_EN, 0x07)) return false;
+    if (!bus_.write8(addr, PMU_CMD_AXIS_EN, 0x07)) return false;
 
     // Set ODR and averaging
     uint8_t aggr = (static_cast<uint8_t>(cfg_.avg) << 4) |
                     static_cast<uint8_t>(cfg_.odr);
-    if (!bus_.write8(addr, reg::PMU_CMD_AGGR, aggr)) return false;
+    if (!bus_.write8(addr, PMU_CMD_AGGR, aggr)) return false;
 
     // Command: normal mode
-    if (!bus_.write8(addr, reg::PMU_CMD, PMU_NORMAL)) return false;
+    if (!bus_.write8(addr, PMU_CMD, PMU_NORMAL)) return false;
     delay_.delayMs(38); // Wait for mode transition
 
     // Verify mode
     uint8_t status;
-    if (!bus_.read8(addr, reg::PMU_CMD_STATUS, status)) return false;
+    if (!bus_.read8(addr, PMU_CMD_STATUS, status)) return false;
     if ((status & 0x03) != PMU_NORMAL) return false;
 
     return true;
@@ -154,12 +154,12 @@ bool BMM350::init() {
     const uint8_t addr = cfg_.address;
 
     // Soft reset
-    if (!bus_.write8(addr, reg::CMD, 0xB6)) return false;
+    if (!bus_.write8(addr, CMD, 0xB6)) return false;
     delay_.delayMs(24);
 
     // Verify CHIP_ID
     uint8_t id;
-    if (!bus_.read8(addr, reg::CHIP_ID, id)) return false;
+    if (!bus_.read8(addr, CHIP_ID, id)) return false;
     if (id != EXPECTED_CHIP_ID) return false;
 
     // Read OTP calibration data
@@ -174,7 +174,7 @@ bool BMM350::init() {
 bool BMM350::readMag(MagData& out) {
     // Read 9 bytes: X(3) + Y(3) + Z(3) starting at MAG_X_XLSB
     uint8_t buf[9];
-    if (!bus_.readRegister(cfg_.address, reg::MAG_X_XLSB, buf, 9)) return false;
+    if (!bus_.readRegister(cfg_.address, MAG_X_XLSB, buf, 9)) return false;
 
     int32_t rawX = sensorToHost24(&buf[0]);
     int32_t rawY = sensorToHost24(&buf[3]);
@@ -196,7 +196,7 @@ bool BMM350::readMag(MagData& out) {
 bool BMM350::readTemperature(float& tempC) {
     // Temperature is 3 bytes starting at MAG_X_XLSB + 9
     uint8_t buf[3];
-    if (!bus_.readRegister(cfg_.address, reg::TEMP_XLSB, buf, 3)) return false;
+    if (!bus_.readRegister(cfg_.address, TEMP_XLSB, buf, 3)) return false;
 
     int32_t raw = sensorToHost24(buf);
     tempC = static_cast<float>(raw) * TEMP_SCALE + TEMP_OFFSET;
@@ -209,7 +209,7 @@ bool BMM350::enableDataReadyInterrupt(IGpioInterrupt* intPin,
     const uint8_t addr = cfg_.address;
 
     // INT_CTRL: enable DRDY interrupt, push-pull, active high
-    if (!bus_.write8(addr, reg::INT_CTRL, 0x07)) return false;
+    if (!bus_.write8(addr, INT_CTRL, 0x07)) return false;
 
     if (!intPin->enable(GpioEdge::RISING, cb, ctx)) return false;
 
@@ -221,7 +221,7 @@ bool BMM350::disableDataReadyInterrupt() {
     const uint8_t addr = cfg_.address;
 
     // Disable interrupts
-    if (!bus_.write8(addr, reg::INT_CTRL, 0x00)) return false;
+    if (!bus_.write8(addr, INT_CTRL, 0x00)) return false;
 
     if (intPin_) {
         intPin_->disable();

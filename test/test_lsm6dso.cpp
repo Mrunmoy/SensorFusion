@@ -262,6 +262,18 @@ TEST_F(LSM6DSOTest, DisableDataReadyInterrupt) {
     EXPECT_TRUE(imu.disableDataReadyInterrupt());
 }
 
+TEST_F(LSM6DSOTest, EnableInterruptBusFail) {
+    expectFullInit();
+    LSM6DSO imu(bus, delay);
+    ASSERT_TRUE(imu.init());
+
+    MockGpioInterrupt intPin;
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT1_CTRL, _, 1))
+        .WillOnce(Return(false));
+
+    EXPECT_FALSE(imu.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+}
+
 TEST_F(LSM6DSOTest, EnableInterruptNullPinFails) {
     expectFullInit();
     LSM6DSO imu(bus, delay);

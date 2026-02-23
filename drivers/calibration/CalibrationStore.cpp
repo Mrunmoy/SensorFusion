@@ -1,6 +1,8 @@
 #include "CalibrationStore.hpp"
 #include <cstring>
 
+static_assert(sizeof(float) == 4, "CalibrationStore assumes 32-bit IEEE 754 floats");
+
 namespace sf {
 
 CalibrationStore::CalibrationStore(INvStore& nv, uint32_t baseAddress)
@@ -8,8 +10,10 @@ CalibrationStore::CalibrationStore(INvStore& nv, uint32_t baseAddress)
 {}
 
 uint32_t CalibrationStore::slotAddress(SensorId id) const {
-    return baseAddr_ + static_cast<uint32_t>(id) * SLOT_SIZE;
+    return baseAddr_ + static_cast<uint32_t>(static_cast<uint8_t>(id)) * SLOT_SIZE;
 }
+
+static constexpr uint8_t MAX_SENSOR_ID = 2; // MAG = 2 is the highest
 
 uint32_t CalibrationStore::crc32(const uint8_t* data, size_t len) {
     // CRC-32 (ISO 3309 / ITU-T V.42)
@@ -27,6 +31,7 @@ uint32_t CalibrationStore::crc32(const uint8_t* data, size_t len) {
 }
 
 bool CalibrationStore::save(SensorId id, const CalibrationData& data) {
+    if (static_cast<uint8_t>(id) > MAX_SENSOR_ID) return false;
     uint8_t buf[SLOT_SIZE];
 
     // Magic
@@ -43,6 +48,7 @@ bool CalibrationStore::save(SensorId id, const CalibrationData& data) {
 }
 
 bool CalibrationStore::load(SensorId id, CalibrationData& data) {
+    if (static_cast<uint8_t>(id) > MAX_SENSOR_ID) return false;
     uint8_t buf[SLOT_SIZE];
 
     if (!nv_.read(slotAddress(id), buf, SLOT_SIZE)) return false;
@@ -68,6 +74,7 @@ bool CalibrationStore::isValid(SensorId id) {
 }
 
 bool CalibrationStore::reset(SensorId id) {
+    if (static_cast<uint8_t>(id) > MAX_SENSOR_ID) return false;
     // Write all 0xFF to invalidate slot
     uint8_t buf[SLOT_SIZE];
     std::memset(buf, 0xFF, SLOT_SIZE);
