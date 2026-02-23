@@ -3,7 +3,7 @@
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
 #include "IGpioInterrupt.hpp"
-#include "SensorTypes.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -24,14 +24,14 @@ struct MPU6050Config {
     uint8_t       address       = 0x68;
 };
 
-class MPU6050 {
+class MPU6050 : public IAccelGyroSensor {
 public:
     MPU6050(II2CBus& bus, IDelayProvider& delay, const MPU6050Config& cfg = {});
 
     bool init();
-    bool readAccel(AccelData& out);
-    bool readGyro(GyroData& out);
-    bool readTemperature(float& tempC);
+    bool readAccel(AccelData& out) override;
+    bool readGyro(GyroData& out) override;
+    bool readTemperature(float& tempC) override;
     bool readAll(AccelData& accel, GyroData& gyro, float& tempC);
 
     bool enableDataReadyInterrupt(IGpioInterrupt* intPin,

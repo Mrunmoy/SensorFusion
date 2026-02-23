@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(drivers)
+add_subdirectory(middleware)
 add_subdirectory(test)
 
 add_executable(sensorfusion main/main.cpp)
-target_link_libraries(sensorfusion PRIVATE sensorfusion_drivers)
+target_link_libraries(sensorfusion PRIVATE sensorfusion_middleware)

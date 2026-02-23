@@ -3,7 +3,7 @@
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
 #include "IGpioInterrupt.hpp"
-#include "SensorTypes.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -51,12 +51,12 @@ struct Bmm350OtpData {
     float t0;
 };
 
-class BMM350 {
+class BMM350 : public IMagSensor {
 public:
     BMM350(II2CBus& bus, IDelayProvider& delay, const BMM350Config& cfg = {});
 
     bool init();
-    bool readMag(MagData& out);
+    bool readMag(MagData& out) override;
     bool readTemperature(float& tempC);
 
     bool enableDataReadyInterrupt(IGpioInterrupt* intPin,

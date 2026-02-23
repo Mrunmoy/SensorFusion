@@ -13,7 +13,7 @@ enable_testing()
 add_executable(driver_tests)
 
 target_link_libraries(driver_tests PRIVATE
-    sensorfusion_drivers
+    sensorfusion_middleware
     GTest::gtest_main
     GTest::gmock
 )
@@ -37,6 +37,13 @@ target_sources(driver_tests PRIVATE
     test_lsm6dso.cpp
     test_calibration.cpp
     test_factory.cpp
+    test_quaternion.cpp
+    test_ring_buffer.cpp
+    test_mahony_ahrs.cpp
+    test_sensor_hub.cpp
+    test_frame_codec.cpp
+    test_altitude_estimator.cpp
+    test_heart_rate_detector.cpp
 )
 
 include(GoogleTest)

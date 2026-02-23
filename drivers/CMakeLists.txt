@@ -14,6 +14,7 @@ target_include_directories(sensorfusion_drivers PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/lsm6dso
     ${CMAKE_CURRENT_SOURCE_DIR}/calibration
     ${CMAKE_CURRENT_SOURCE_DIR}/factory_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../middleware/common
 )
 
 target_compile_features(sensorfusion_drivers PUBLIC cxx_std_17)

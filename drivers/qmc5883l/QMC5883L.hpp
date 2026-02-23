@@ -3,7 +3,7 @@
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
 #include "IGpioInterrupt.hpp"
-#include "SensorTypes.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -21,7 +21,7 @@ struct QMC5883LConfig {
     uint8_t  address = 0x0D;
 };
 
-class QMC5883L {
+class QMC5883L : public IMagSensor {
 public:
     QMC5883L(II2CBus& bus, IDelayProvider& delay, const QMC5883LConfig& cfg = {});
 
@@ -29,6 +29,7 @@ public:
     bool isDataReady(bool& ready);
     bool readRaw(int16_t& x, int16_t& y, int16_t& z);
     bool readMicroTesla(MagData& out);
+    bool readMag(MagData& out) override { return readMicroTesla(out); }
     float headingDegrees(float mx, float my);
 
     bool enableDataReadyInterrupt(IGpioInterrupt* intPin,

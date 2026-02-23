@@ -3,6 +3,7 @@
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
 #include "IGpioInterrupt.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -36,12 +37,13 @@ struct LPS22DFConfig {
     uint8_t address = 0x5D;
 };
 
-class LPS22DF {
+class LPS22DF : public IBaroSensor {
 public:
     LPS22DF(II2CBus& bus, IDelayProvider& delay, const LPS22DFConfig& cfg = {});
 
     bool init();
     bool readPressure(float& hPa);
+    bool readPressureHPa(float& hPa) override { return readPressure(hPa); }
     bool readTemperature(float& tempC);
     bool readAll(float& hPa, float& tempC);
 

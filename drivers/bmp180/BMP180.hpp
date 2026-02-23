@@ -2,6 +2,7 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -15,13 +16,14 @@ struct BMP180Config {
     uint8_t   address = 0x77;
 };
 
-class BMP180 {
+class BMP180 : public IBaroSensor {
 public:
     BMP180(II2CBus& bus, IDelayProvider& delay, const BMP180Config& cfg = {});
 
     bool init();
     bool readTemperature(float& tempC);
     bool readPressure(int32_t& pressurePa);
+    bool readPressureHPa(float& hPa) override;
     bool readTempAndPressure(float& tempC, int32_t& pressurePa);
     static float pressureToAltitude(int32_t pressurePa, float seaLevelPa = 101325.0f);
 

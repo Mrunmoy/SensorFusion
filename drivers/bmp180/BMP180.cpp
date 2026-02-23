@@ -137,6 +137,13 @@ bool BMP180::readPressure(int32_t& pressurePa) {
     return true;
 }
 
+bool BMP180::readPressureHPa(float& hPa) {
+    int32_t pa;
+    if (!readPressure(pa)) return false;
+    hPa = static_cast<float>(pa) / 100.0f;
+    return true;
+}
+
 bool BMP180::readTempAndPressure(float& tempC, int32_t& pressurePa) {
     int32_t ut, up;
     if (!readRawTemp(ut)) return false;
