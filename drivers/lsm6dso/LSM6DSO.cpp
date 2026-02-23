@@ -48,7 +48,8 @@ float LSM6DSO::gyroSensitivity(LsmGyroRange r) {
 
 int16_t LSM6DSO::sensorToHost16(const uint8_t* buf) {
     // Little-endian: L, H
-    return static_cast<int16_t>((buf[1] << 8) | buf[0]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[0]));
 }
 
 bool LSM6DSO::init() {

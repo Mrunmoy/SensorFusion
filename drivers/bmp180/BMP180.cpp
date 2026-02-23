@@ -36,10 +36,12 @@ bool BMP180::init() {
     if (!bus_.readRegister(addr, reg::CALIB_START, calib, 22)) return false;
 
     auto get16 = [&](int idx) -> int16_t {
-        return static_cast<int16_t>((calib[idx * 2] << 8) | calib[idx * 2 + 1]);
+        return static_cast<int16_t>(
+            (static_cast<uint16_t>(calib[idx * 2]) << 8) | static_cast<uint16_t>(calib[idx * 2 + 1]));
     };
     auto getu16 = [&](int idx) -> uint16_t {
-        return static_cast<uint16_t>((calib[idx * 2] << 8) | calib[idx * 2 + 1]);
+        return static_cast<uint16_t>(
+            (static_cast<uint16_t>(calib[idx * 2]) << 8) | static_cast<uint16_t>(calib[idx * 2 + 1]));
     };
 
     ac1_ = get16(0);
@@ -62,7 +64,8 @@ bool BMP180::readRawTemp(int32_t& ut) {
     delay_.delayMs(5);
     uint8_t buf[2];
     if (!bus_.readRegister(cfg_.address, reg::OUT_MSB, buf, 2)) return false;
-    ut = static_cast<int32_t>((buf[0] << 8) | buf[1]);
+    ut = static_cast<int32_t>(
+        (static_cast<uint16_t>(buf[0]) << 8) | static_cast<uint16_t>(buf[1]));
     return true;
 }
 
@@ -81,7 +84,9 @@ bool BMP180::readRawPressure(int32_t& up) {
 
 int32_t BMP180::computeB5(int32_t ut) {
     int32_t x1 = (static_cast<int32_t>(ut - ac6_) * ac5_) >> 15;
-    int32_t x2 = (static_cast<int32_t>(mc_) << 11) / (x1 + md_);
+    int32_t divisor = x1 + md_;
+    if (divisor == 0) return 0; // bad calibration data
+    int32_t x2 = (static_cast<int32_t>(mc_) << 11) / divisor;
     return x1 + x2;
 }
 
@@ -98,6 +103,7 @@ int32_t BMP180::computeTruePressure(int32_t up, int32_t b5) {
     x2 = (static_cast<int32_t>(b1_) * ((b6 * b6) >> 12)) >> 16;
     x3 = ((x1 + x2) + 2) >> 2;
     uint32_t b4 = (static_cast<uint32_t>(ac4_) * static_cast<uint32_t>(x3 + 32768)) >> 15;
+    if (b4 == 0) return 0; // bad calibration data
     uint32_t b7 = (static_cast<uint32_t>(up - b3)) * (50000u >> oss);
 
     int32_t p;

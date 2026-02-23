@@ -2,6 +2,7 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "IGpioInterrupt.hpp"
 #include "SensorTypes.hpp"
 #include <cstdint>
 
@@ -30,11 +31,17 @@ public:
     bool readMicroTesla(MagData& out);
     float headingDegrees(float mx, float my);
 
+    bool enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                  IGpioInterrupt::Callback cb, void* ctx);
+    bool disableDataReadyInterrupt();
+
 private:
     II2CBus& bus_;
     IDelayProvider& delay_;
     QMC5883LConfig cfg_;
     float lsbPerMicroTesla_;
+
+    IGpioInterrupt* intPin_ = nullptr;
 
     static float lsbPerUT(MagRange r);
     static int16_t sensorToHost16(const uint8_t* buf);

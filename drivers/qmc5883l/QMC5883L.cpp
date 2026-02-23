@@ -23,7 +23,8 @@ float QMC5883L::lsbPerUT(MagRange r) {
 }
 
 int16_t QMC5883L::sensorToHost16(const uint8_t* buf) {
-    return static_cast<int16_t>((buf[1] << 8) | buf[0]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[0]));
 }
 
 bool QMC5883L::init() {
@@ -76,6 +77,34 @@ float QMC5883L::headingDegrees(float mx, float my) {
     float heading = std::atan2(-my, mx) * (180.0f / static_cast<float>(M_PI));
     if (heading < 0.0f) heading += 360.0f;
     return heading;
+}
+
+bool QMC5883L::enableDataReadyInterrupt(IGpioInterrupt* intPin,
+                                        IGpioInterrupt::Callback cb, void* ctx) {
+    if (!intPin) return false;
+    const uint8_t addr = cfg_.address;
+
+    // CTRL2 bit 0: INT_ENB — enable DRDY interrupt pin
+    if (!bus_.write8(addr, reg::CTRL2, 0x01)) return false;
+
+    // DRDY pin is active low on QMC5883L
+    if (!intPin->enable(GpioEdge::FALLING, cb, ctx)) return false;
+
+    intPin_ = intPin;
+    return true;
+}
+
+bool QMC5883L::disableDataReadyInterrupt() {
+    const uint8_t addr = cfg_.address;
+
+    // Disable interrupt (CTRL2 bit 0 = 0)
+    if (!bus_.write8(addr, reg::CTRL2, 0x00)) return false;
+
+    if (intPin_) {
+        intPin_->disable();
+        intPin_ = nullptr;
+    }
+    return true;
 }
 
 } // namespace sf

@@ -67,12 +67,12 @@ TEST_F(ADXL345Test, ReadAccelConvertsToG) {
     ADXL345 accel(bus);
     ASSERT_TRUE(accel.init());
 
-    // Full-res: 4 mg/LSB = 0.004 g/LSB
-    // X=250 → 1.0g, Y=0, Z=0
+    // Full-res: 3.9 mg/LSB
+    // X=256 → ~0.998g, Y=0, Z=0
     EXPECT_CALL(bus, readRegister(ADDR, REG_DATAX0, _, 6))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
-            // 250 = 0x00FA (LE: 0xFA, 0x00)
-            buf[0] = 0xFA; buf[1] = 0x00;  // X
+            // 256 = 0x0100 (LE: 0x00, 0x01)
+            buf[0] = 0x00; buf[1] = 0x01;  // X
             buf[2] = 0x00; buf[3] = 0x00;  // Y
             buf[4] = 0x00; buf[5] = 0x00;  // Z
             return true;
@@ -90,11 +90,11 @@ TEST_F(ADXL345Test, ReadAccelNegative) {
     ADXL345 accel(bus);
     ASSERT_TRUE(accel.init());
 
-    // -250 LSB → -1.0g
+    // -256 LSB → ~-0.998g
     EXPECT_CALL(bus, readRegister(ADDR, REG_DATAX0, _, 6))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
-            // -250 = 0xFF06 (LE: 0x06, 0xFF)
-            buf[0] = 0x06; buf[1] = 0xFF;  // X = -250
+            // -256 = 0xFF00 (LE: 0x00, 0xFF)
+            buf[0] = 0x00; buf[1] = 0xFF;  // X = -256
             buf[2] = 0x00; buf[3] = 0x00;
             buf[4] = 0x00; buf[5] = 0x00;
             return true;

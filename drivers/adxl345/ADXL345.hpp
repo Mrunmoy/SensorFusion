@@ -30,9 +30,11 @@ public:
 private:
     II2CBus& bus_;
     ADXL345Config cfg_;
+    float mgPerLsb_;
 
     IGpioInterrupt* intPin_ = nullptr;
 
+    static float computeMgPerLsb(AdxlRange range, bool fullRes);
     static int16_t sensorToHost16(const uint8_t* buf);
 };
 

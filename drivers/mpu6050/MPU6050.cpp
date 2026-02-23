@@ -35,7 +35,8 @@ float MPU6050::gyroLsbPerDps(GyroRange r) {
 }
 
 int16_t MPU6050::sensorToHost16(const uint8_t* buf) {
-    return static_cast<int16_t>((buf[0] << 8) | buf[1]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[0]) << 8) | static_cast<uint16_t>(buf[1]));
 }
 
 bool MPU6050::init() {

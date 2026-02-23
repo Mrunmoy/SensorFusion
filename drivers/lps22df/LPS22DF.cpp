@@ -22,7 +22,8 @@ LPS22DF::LPS22DF(II2CBus& bus, IDelayProvider& delay, const LPS22DFConfig& cfg)
 {}
 
 int16_t LPS22DF::sensorToHost16(const uint8_t* buf) {
-    return static_cast<int16_t>((buf[1] << 8) | buf[0]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[0]));
 }
 
 int32_t LPS22DF::sensorToHost24(const uint8_t* buf) {
