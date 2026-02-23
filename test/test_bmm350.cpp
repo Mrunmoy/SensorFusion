@@ -236,6 +236,18 @@ TEST_F(BMM350Test, DisableDataReadyInterrupt) {
     EXPECT_TRUE(mag.disableDataReadyInterrupt());
 }
 
+TEST_F(BMM350Test, EnableInterruptBusFail) {
+    expectFullInit();
+    BMM350 mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
+    MockGpioInterrupt intPin;
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_INT_CTRL, _, 1))
+        .WillOnce(Return(false));
+
+    EXPECT_FALSE(mag.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+}
+
 TEST_F(BMM350Test, EnableInterruptNullPinFails) {
     expectFullInit();
     BMM350 mag(bus, delay);

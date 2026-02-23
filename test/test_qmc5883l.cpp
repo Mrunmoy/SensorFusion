@@ -49,14 +49,15 @@ TEST_F(QMC5883LTest, InitBusFail) {
 }
 
 TEST_F(QMC5883LTest, IsDataReady) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
     EXPECT_CALL(bus, readRegister(ADDR, REG_STATUS, _, 1))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
             buf[0] = 0x01; // DRDY set
             return true;
         });
-    expectInit();
-    QMC5883L mag(bus, delay);
-    ASSERT_TRUE(mag.init());
 
     bool ready = false;
     ASSERT_TRUE(mag.isDataReady(ready));
@@ -64,14 +65,15 @@ TEST_F(QMC5883LTest, IsDataReady) {
 }
 
 TEST_F(QMC5883LTest, IsDataNotReady) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
     EXPECT_CALL(bus, readRegister(ADDR, REG_STATUS, _, 1))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
             buf[0] = 0x00; // DRDY not set
             return true;
         });
-    expectInit();
-    QMC5883L mag(bus, delay);
-    ASSERT_TRUE(mag.init());
 
     bool ready = true;
     ASSERT_TRUE(mag.isDataReady(ready));
@@ -79,6 +81,10 @@ TEST_F(QMC5883LTest, IsDataNotReady) {
 }
 
 TEST_F(QMC5883LTest, ReadRawLittleEndian) {
+    expectInit();
+    QMC5883L mag(bus, delay);
+    ASSERT_TRUE(mag.init());
+
     // X = 0x0100 = 256, Y = 0xFF00 = -256 (signed), Z = 0x0001 = 1
     EXPECT_CALL(bus, readRegister(ADDR, REG_DATA, _, 6))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
@@ -87,9 +93,6 @@ TEST_F(QMC5883LTest, ReadRawLittleEndian) {
             buf[4] = 0x01; buf[5] = 0x00;  // Z LSB, MSB
             return true;
         });
-    expectInit();
-    QMC5883L mag(bus, delay);
-    ASSERT_TRUE(mag.init());
 
     int16_t x, y, z;
     ASSERT_TRUE(mag.readRaw(x, y, z));
@@ -99,8 +102,12 @@ TEST_F(QMC5883LTest, ReadRawLittleEndian) {
 }
 
 TEST_F(QMC5883LTest, ReadMicroTesla8G) {
-    // 8G range: 3000 LSB/Gauss = 300 LSB/µT
-    // raw 300 → 1.0 µT
+    expectInit();
+    QMC5883L mag(bus, delay); // default: 8G
+    ASSERT_TRUE(mag.init());
+
+    // 8G range: 3000 LSB/Gauss = 300 LSB/uT
+    // raw 300 → 1.0 uT
     EXPECT_CALL(bus, readRegister(ADDR, REG_DATA, _, 6))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
             // 300 = 0x012C (LE: 0x2C, 0x01)
@@ -110,10 +117,6 @@ TEST_F(QMC5883LTest, ReadMicroTesla8G) {
             return true;
         });
 
-    expectInit();
-    QMC5883L mag(bus, delay); // default: 8G
-    ASSERT_TRUE(mag.init());
-
     MagData m;
     ASSERT_TRUE(mag.readMicroTesla(m));
     EXPECT_NEAR(m.x, 1.0f, 0.01f);
@@ -122,8 +125,15 @@ TEST_F(QMC5883LTest, ReadMicroTesla8G) {
 }
 
 TEST_F(QMC5883LTest, ReadMicroTesla2G) {
-    // 2G range: 12000 LSB/Gauss = 1200 LSB/µT
-    // raw 1200 → 1.0 µT
+    QMC5883LConfig cfg;
+    cfg.range = MagRange::GAUSS_2;
+
+    expectInit();
+    QMC5883L mag(bus, delay, cfg);
+    ASSERT_TRUE(mag.init());
+
+    // 2G range: 12000 LSB/Gauss = 1200 LSB/uT
+    // raw 1200 → 1.0 uT
     EXPECT_CALL(bus, readRegister(ADDR, REG_DATA, _, 6))
         .WillOnce([](uint8_t, uint8_t, uint8_t* buf, size_t) {
             // 1200 = 0x04B0 (LE: 0xB0, 0x04)
@@ -132,13 +142,6 @@ TEST_F(QMC5883LTest, ReadMicroTesla2G) {
             buf[4] = 0x00; buf[5] = 0x00;
             return true;
         });
-
-    QMC5883LConfig cfg;
-    cfg.range = MagRange::GAUSS_2;
-
-    expectInit();
-    QMC5883L mag(bus, delay, cfg);
-    ASSERT_TRUE(mag.init());
 
     MagData m;
     ASSERT_TRUE(mag.readMicroTesla(m));
@@ -156,11 +159,12 @@ TEST_F(QMC5883LTest, HeadingDegrees) {
 }
 
 TEST_F(QMC5883LTest, ReadBusFail) {
-    EXPECT_CALL(bus, readRegister(ADDR, REG_DATA, _, 6))
-        .WillOnce(Return(false));
     expectInit();
     QMC5883L mag(bus, delay);
     ASSERT_TRUE(mag.init());
+
+    EXPECT_CALL(bus, readRegister(ADDR, REG_DATA, _, 6))
+        .WillOnce(Return(false));
 
     MagData m;
     EXPECT_FALSE(mag.readMicroTesla(m));

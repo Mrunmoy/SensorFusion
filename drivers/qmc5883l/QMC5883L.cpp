@@ -3,7 +3,7 @@
 
 namespace sf {
 
-namespace reg {
+namespace {
     constexpr uint8_t DATA_X_LSB = 0x00;
     constexpr uint8_t STATUS     = 0x06;
     constexpr uint8_t CTRL1      = 0x09;
@@ -31,18 +31,18 @@ bool QMC5883L::init() {
     const uint8_t addr = cfg_.address;
 
     // Soft reset
-    if (!bus_.write8(addr, reg::CTRL2, 0x80)) return false;
+    if (!bus_.write8(addr, CTRL2, 0x80)) return false;
     delay_.delayMs(10);
 
     // Recommended SET/RESET period
-    if (!bus_.write8(addr, reg::SET_RST, 0x01)) return false;
+    if (!bus_.write8(addr, SET_RST, 0x01)) return false;
 
     // CTRL1: OSR[7:6] | RNG[5:4] | ODR[3:2] | MODE[1:0]
     uint8_t ctrl1 = (static_cast<uint8_t>(cfg_.osr) << 6) |
                     (static_cast<uint8_t>(cfg_.range) << 4) |
                     (static_cast<uint8_t>(cfg_.odr) << 2) |
                     static_cast<uint8_t>(cfg_.mode);
-    if (!bus_.write8(addr, reg::CTRL1, ctrl1)) return false;
+    if (!bus_.write8(addr, CTRL1, ctrl1)) return false;
     delay_.delayMs(5);
 
     return true;
@@ -50,14 +50,14 @@ bool QMC5883L::init() {
 
 bool QMC5883L::isDataReady(bool& ready) {
     uint8_t status;
-    if (!bus_.read8(cfg_.address, reg::STATUS, status)) return false;
+    if (!bus_.read8(cfg_.address, STATUS, status)) return false;
     ready = (status & 0x01) != 0;
     return true;
 }
 
 bool QMC5883L::readRaw(int16_t& x, int16_t& y, int16_t& z) {
     uint8_t buf[6];
-    if (!bus_.readRegister(cfg_.address, reg::DATA_X_LSB, buf, 6)) return false;
+    if (!bus_.readRegister(cfg_.address, DATA_X_LSB, buf, 6)) return false;
     x = sensorToHost16(&buf[0]);
     y = sensorToHost16(&buf[2]);
     z = sensorToHost16(&buf[4]);
@@ -84,8 +84,10 @@ bool QMC5883L::enableDataReadyInterrupt(IGpioInterrupt* intPin,
     if (!intPin) return false;
     const uint8_t addr = cfg_.address;
 
-    // CTRL2 bit 0: INT_ENB — enable DRDY interrupt pin
-    if (!bus_.write8(addr, reg::CTRL2, 0x01)) return false;
+    // CTRL2 bit 0: INT_ENB — enable DRDY interrupt pin.
+    // Note: other CTRL2 bits (SOFT_RST, ROL_PNT) are write-only triggers
+    // that are safe to write as 0 here.
+    if (!bus_.write8(addr, CTRL2, 0x01)) return false;
 
     // DRDY pin is active low on QMC5883L
     if (!intPin->enable(GpioEdge::FALLING, cb, ctx)) return false;
@@ -98,7 +100,7 @@ bool QMC5883L::disableDataReadyInterrupt() {
     const uint8_t addr = cfg_.address;
 
     // Disable interrupt (CTRL2 bit 0 = 0)
-    if (!bus_.write8(addr, reg::CTRL2, 0x00)) return false;
+    if (!bus_.write8(addr, CTRL2, 0x00)) return false;
 
     if (intPin_) {
         intPin_->disable();

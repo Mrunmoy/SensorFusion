@@ -3,7 +3,7 @@
 
 namespace sf {
 
-namespace reg {
+namespace {
     constexpr uint8_t CALIB_START = 0xAA;
     constexpr uint8_t CHIP_ID    = 0xD0;
     constexpr uint8_t CTRL_MEAS  = 0xF4;
@@ -28,12 +28,12 @@ bool BMP180::init() {
 
     // Verify chip ID
     uint8_t id;
-    if (!bus_.read8(addr, reg::CHIP_ID, id)) return false;
+    if (!bus_.read8(addr, CHIP_ID, id)) return false;
     if (id != EXPECTED_ID) return false;
 
     // Read calibration data (22 bytes, big-endian)
     uint8_t calib[22];
-    if (!bus_.readRegister(addr, reg::CALIB_START, calib, 22)) return false;
+    if (!bus_.readRegister(addr, CALIB_START, calib, 22)) return false;
 
     auto get16 = [&](int idx) -> int16_t {
         return static_cast<int16_t>(
@@ -60,10 +60,10 @@ bool BMP180::init() {
 }
 
 bool BMP180::readRawTemp(int32_t& ut) {
-    if (!bus_.write8(cfg_.address, reg::CTRL_MEAS, CMD_TEMP)) return false;
+    if (!bus_.write8(cfg_.address, CTRL_MEAS, CMD_TEMP)) return false;
     delay_.delayMs(5);
     uint8_t buf[2];
-    if (!bus_.readRegister(cfg_.address, reg::OUT_MSB, buf, 2)) return false;
+    if (!bus_.readRegister(cfg_.address, OUT_MSB, buf, 2)) return false;
     ut = static_cast<int32_t>(
         (static_cast<uint16_t>(buf[0]) << 8) | static_cast<uint16_t>(buf[1]));
     return true;
@@ -72,10 +72,10 @@ bool BMP180::readRawTemp(int32_t& ut) {
 bool BMP180::readRawPressure(int32_t& up) {
     uint8_t oss = static_cast<uint8_t>(cfg_.oss);
     uint8_t cmd = 0x34 | (oss << 6);
-    if (!bus_.write8(cfg_.address, reg::CTRL_MEAS, cmd)) return false;
+    if (!bus_.write8(cfg_.address, CTRL_MEAS, cmd)) return false;
     delay_.delayMs(ossDelay[oss]);
     uint8_t buf[3];
-    if (!bus_.readRegister(cfg_.address, reg::OUT_MSB, buf, 3)) return false;
+    if (!bus_.readRegister(cfg_.address, OUT_MSB, buf, 3)) return false;
     up = ((static_cast<int32_t>(buf[0]) << 16) |
           (static_cast<int32_t>(buf[1]) << 8) |
           static_cast<int32_t>(buf[2])) >> (8 - oss);

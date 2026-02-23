@@ -38,12 +38,14 @@ public:
     size_t testCount() const { return count_; }
     size_t passCount() const { return passCount_; }
     size_t failCount() const { return failCount_; }
+    size_t skippedCount() const { return skippedCount_; }
 
 private:
     IFactoryTest* tests_[MAX_TESTS]{};
     size_t count_ = 0;
     size_t passCount_ = 0;
     size_t failCount_ = 0;
+    size_t skippedCount_ = 0;
 };
 
 } // namespace sf

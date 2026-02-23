@@ -24,7 +24,7 @@ struct CalibrationData {
 class CalibrationStore {
 public:
     static constexpr uint32_t MAGIC = 0x43414C42; // "CALB"
-    static constexpr size_t SLOT_SIZE = 4 + sizeof(CalibrationData) + 4; // magic + data + crc
+    static constexpr uint32_t SLOT_SIZE = 4u + static_cast<uint32_t>(sizeof(CalibrationData)) + 4u;
 
     CalibrationStore(INvStore& nv, uint32_t baseAddress = 0);
 

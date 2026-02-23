@@ -2,7 +2,7 @@
 
 namespace sf {
 
-namespace reg {
+namespace {
     constexpr uint8_t SMPLRT_DIV   = 0x19;
     constexpr uint8_t CONFIG       = 0x1A;
     constexpr uint8_t GYRO_CONFIG  = 0x1B;
@@ -43,35 +43,35 @@ bool MPU6050::init() {
     const uint8_t addr = cfg_.address;
 
     // Device reset
-    if (!bus_.write8(addr, reg::PWR_MGMT_1, 0x80)) return false;
+    if (!bus_.write8(addr, PWR_MGMT_1, 0x80)) return false;
     delay_.delayMs(100);
 
     // Clock source: PLL with X gyro reference
-    if (!bus_.write8(addr, reg::PWR_MGMT_1, 0x01)) return false;
+    if (!bus_.write8(addr, PWR_MGMT_1, 0x01)) return false;
 
     // Verify WHO_AM_I
     uint8_t id = 0;
-    if (!bus_.read8(addr, reg::WHO_AM_I, id)) return false;
+    if (!bus_.read8(addr, WHO_AM_I, id)) return false;
     if (id != 0x68) return false;
 
     // Sample rate divider
-    if (!bus_.write8(addr, reg::SMPLRT_DIV, cfg_.sampleRateDiv)) return false;
+    if (!bus_.write8(addr, SMPLRT_DIV, cfg_.sampleRateDiv)) return false;
 
     // DLPF config
-    if (!bus_.write8(addr, reg::CONFIG, static_cast<uint8_t>(cfg_.dlpf))) return false;
+    if (!bus_.write8(addr, CONFIG, static_cast<uint8_t>(cfg_.dlpf))) return false;
 
     // Gyro range
-    if (!bus_.write8(addr, reg::GYRO_CONFIG,
+    if (!bus_.write8(addr, GYRO_CONFIG,
                      static_cast<uint8_t>(cfg_.gyroRange) << 3)) return false;
 
     // Accel range
-    if (!bus_.write8(addr, reg::ACCEL_CONFIG,
+    if (!bus_.write8(addr, ACCEL_CONFIG,
                      static_cast<uint8_t>(cfg_.accelRange) << 3)) return false;
 
     // I2C bypass mode (allows direct access to aux I2C devices like magnetometer)
     if (cfg_.i2cBypass) {
-        if (!bus_.write8(addr, reg::USER_CTRL, 0x00)) return false;   // disable I2C master
-        if (!bus_.write8(addr, reg::INT_PIN_CFG, 0x02)) return false; // enable bypass
+        if (!bus_.write8(addr, USER_CTRL, 0x00)) return false;   // disable I2C master
+        if (!bus_.write8(addr, INT_PIN_CFG, 0x02)) return false; // enable bypass
     }
 
     return true;
@@ -79,7 +79,7 @@ bool MPU6050::init() {
 
 bool MPU6050::readAccel(AccelData& out) {
     uint8_t buf[6];
-    if (!bus_.readRegister(cfg_.address, reg::ACCEL_XOUT_H, buf, 6)) return false;
+    if (!bus_.readRegister(cfg_.address, ACCEL_XOUT_H, buf, 6)) return false;
     out.x = static_cast<float>(sensorToHost16(&buf[0])) / accelScale_;
     out.y = static_cast<float>(sensorToHost16(&buf[2])) / accelScale_;
     out.z = static_cast<float>(sensorToHost16(&buf[4])) / accelScale_;
@@ -88,7 +88,7 @@ bool MPU6050::readAccel(AccelData& out) {
 
 bool MPU6050::readGyro(GyroData& out) {
     uint8_t buf[6];
-    if (!bus_.readRegister(cfg_.address, reg::GYRO_XOUT_H, buf, 6)) return false;
+    if (!bus_.readRegister(cfg_.address, GYRO_XOUT_H, buf, 6)) return false;
     out.x = static_cast<float>(sensorToHost16(&buf[0])) / gyroScale_;
     out.y = static_cast<float>(sensorToHost16(&buf[2])) / gyroScale_;
     out.z = static_cast<float>(sensorToHost16(&buf[4])) / gyroScale_;
@@ -97,7 +97,7 @@ bool MPU6050::readGyro(GyroData& out) {
 
 bool MPU6050::readTemperature(float& tempC) {
     uint8_t buf[2];
-    if (!bus_.readRegister(cfg_.address, reg::TEMP_OUT_H, buf, 2)) return false;
+    if (!bus_.readRegister(cfg_.address, TEMP_OUT_H, buf, 2)) return false;
     int16_t raw = sensorToHost16(buf);
     tempC = static_cast<float>(raw) / 340.0f + 36.53f;
     return true;
@@ -105,7 +105,7 @@ bool MPU6050::readTemperature(float& tempC) {
 
 bool MPU6050::readAll(AccelData& accel, GyroData& gyro, float& tempC) {
     uint8_t buf[14];
-    if (!bus_.readRegister(cfg_.address, reg::ACCEL_XOUT_H, buf, 14)) return false;
+    if (!bus_.readRegister(cfg_.address, ACCEL_XOUT_H, buf, 14)) return false;
 
     accel.x = static_cast<float>(sensorToHost16(&buf[0])) / accelScale_;
     accel.y = static_cast<float>(sensorToHost16(&buf[2])) / accelScale_;
@@ -130,10 +130,10 @@ bool MPU6050::enableDataReadyInterrupt(IGpioInterrupt* intPin,
     // clear on any read (bit 4), preserve bypass if enabled (bit 1)
     uint8_t pinCfg = 0xB0; // active-low | latch | clear-on-read
     if (cfg_.i2cBypass) pinCfg |= 0x02;
-    if (!bus_.write8(addr, reg::INT_PIN_CFG, pinCfg)) return false;
+    if (!bus_.write8(addr, INT_PIN_CFG, pinCfg)) return false;
 
     // Enable data ready interrupt
-    if (!bus_.write8(addr, reg::INT_ENABLE, 0x01)) return false;
+    if (!bus_.write8(addr, INT_ENABLE, 0x01)) return false;
 
     // Attach MCU-side GPIO interrupt (active low → falling edge)
     if (!intPin->enable(GpioEdge::FALLING, cb, ctx)) return false;
@@ -146,7 +146,7 @@ bool MPU6050::disableDataReadyInterrupt() {
     const uint8_t addr = cfg_.address;
 
     // Disable all interrupts
-    if (!bus_.write8(addr, reg::INT_ENABLE, 0x00)) return false;
+    if (!bus_.write8(addr, INT_ENABLE, 0x00)) return false;
 
     if (intPin_) {
         intPin_->disable();
@@ -156,7 +156,7 @@ bool MPU6050::disableDataReadyInterrupt() {
 }
 
 bool MPU6050::clearInterrupt(uint8_t& status) {
-    return bus_.read8(cfg_.address, reg::INT_STATUS, status);
+    return bus_.read8(cfg_.address, INT_STATUS, status);
 }
 
 } // namespace sf

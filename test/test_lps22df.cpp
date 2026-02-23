@@ -191,6 +191,18 @@ TEST_F(LPS22DFTest, DisableDataReadyInterrupt) {
     EXPECT_TRUE(sensor.disableDataReadyInterrupt());
 }
 
+TEST_F(LPS22DFTest, EnableInterruptBusFail) {
+    expectFullInit();
+    LPS22DF sensor(bus, delay);
+    ASSERT_TRUE(sensor.init());
+
+    MockGpioInterrupt intPin;
+    EXPECT_CALL(bus, writeRegister(ADDR, REG_CTRL4, _, 1))
+        .WillOnce(Return(false));
+
+    EXPECT_FALSE(sensor.enableDataReadyInterrupt(&intPin, nullptr, nullptr));
+}
+
 TEST_F(LPS22DFTest, EnableInterruptNullPinFails) {
     expectFullInit();
     LPS22DF sensor(bus, delay);

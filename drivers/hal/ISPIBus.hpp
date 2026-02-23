@@ -5,6 +5,10 @@
 
 namespace sf {
 
+/// SPI bus abstraction for a single device.
+/// Each ISPIBus instance manages chip-select for one device.
+/// The platform implementation must assert CS before and deassert CS after
+/// each readRegister/writeRegister call.
 class ISPIBus {
 public:
     virtual ~ISPIBus() = default;
