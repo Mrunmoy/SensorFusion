@@ -14,14 +14,21 @@ namespace reg {
 }
 
 static constexpr uint8_t EXPECTED_DEVID = 0xE5;
-static constexpr float MG_PER_LSB = 0.004f; // 4 mg/LSB in full-resolution mode
+
+float ADXL345::computeMgPerLsb(AdxlRange range, bool fullRes) {
+    if (fullRes) return 0.0039f; // 3.9 mg/LSB in full-resolution mode (CR-012)
+    // Non-full-res: 10-bit output, scale depends on range
+    constexpr float table[] = {0.0039f, 0.0078f, 0.0156f, 0.0312f};
+    return table[static_cast<uint8_t>(range)];
+}
 
 ADXL345::ADXL345(II2CBus& bus, const ADXL345Config& cfg)
-    : bus_(bus), cfg_(cfg)
+    : bus_(bus), cfg_(cfg), mgPerLsb_(computeMgPerLsb(cfg.range, cfg.fullRes))
 {}
 
 int16_t ADXL345::sensorToHost16(const uint8_t* buf) {
-    return static_cast<int16_t>((buf[1] << 8) | buf[0]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[0]));
 }
 
 bool ADXL345::init() {
@@ -50,9 +57,9 @@ bool ADXL345::readAccel(AccelData& out) {
     uint8_t buf[6];
     if (!bus_.readRegister(cfg_.address, reg::DATAX0, buf, 6)) return false;
 
-    out.x = static_cast<float>(sensorToHost16(&buf[0])) * MG_PER_LSB;
-    out.y = static_cast<float>(sensorToHost16(&buf[2])) * MG_PER_LSB;
-    out.z = static_cast<float>(sensorToHost16(&buf[4])) * MG_PER_LSB;
+    out.x = static_cast<float>(sensorToHost16(&buf[0])) * mgPerLsb_;
+    out.y = static_cast<float>(sensorToHost16(&buf[2])) * mgPerLsb_;
+    out.z = static_cast<float>(sensorToHost16(&buf[4])) * mgPerLsb_;
     return true;
 }
 

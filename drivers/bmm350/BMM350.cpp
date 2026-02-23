@@ -11,6 +11,7 @@ namespace reg {
     constexpr uint8_t INT_CTRL        = 0x2E;
     constexpr uint8_t INT_STATUS      = 0x30;
     constexpr uint8_t MAG_X_XLSB     = 0x31;
+    constexpr uint8_t TEMP_XLSB      = 0x3A;
     constexpr uint8_t OTP_CMD         = 0x50;
     constexpr uint8_t OTP_DATA_MSB    = 0x52;
     constexpr uint8_t OTP_DATA_LSB    = 0x53;
@@ -25,8 +26,7 @@ static constexpr uint8_t PMU_NORMAL  = 0x01;
 // OTP word addresses for calibration data (simplified subset)
 static constexpr uint8_t OTP_WORD_OFF_X   = 0x0E;
 static constexpr uint8_t OTP_WORD_OFF_Y   = 0x0F;
-static constexpr uint8_t OTP_WORD_OFF_Z   = 0x10;
-static constexpr uint8_t OTP_WORD_SENS_X  = 0x10;
+static constexpr uint8_t OTP_WORD_OFF_Z   = 0x10; // packs offsetZ (high byte) + sensX (low byte)
 static constexpr uint8_t OTP_WORD_SENS_Y  = 0x11;
 static constexpr uint8_t OTP_WORD_TCO_X   = 0x12;
 static constexpr uint8_t OTP_WORD_TCO_Y   = 0x13;
@@ -43,7 +43,8 @@ BMM350::BMM350(II2CBus& bus, IDelayProvider& delay, const BMM350Config& cfg)
 {}
 
 int16_t BMM350::sensorToHost16(const uint8_t* buf) {
-    return static_cast<int16_t>((buf[1] << 8) | buf[0]);
+    return static_cast<int16_t>(
+        (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[0]));
 }
 
 int32_t BMM350::sensorToHost24(const uint8_t* buf) {
@@ -195,7 +196,7 @@ bool BMM350::readMag(MagData& out) {
 bool BMM350::readTemperature(float& tempC) {
     // Temperature is 3 bytes starting at MAG_X_XLSB + 9
     uint8_t buf[3];
-    if (!bus_.readRegister(cfg_.address, 0x3A, buf, 3)) return false;
+    if (!bus_.readRegister(cfg_.address, reg::TEMP_XLSB, buf, 3)) return false;
 
     int32_t raw = sensorToHost24(buf);
     tempC = static_cast<float>(raw) * TEMP_SCALE + TEMP_OFFSET;
