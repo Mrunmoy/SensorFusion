@@ -1,58 +1,143 @@
-# 🌐 DIY Sensor Node
+# SensorFusion
 
-This project is an exploration into creating a low-power, interconnected sensor network using an ESP32 microcontroller (later change over to nRF82540) and a GY-87 sensor module (make it battery powered rechargeable node). The goal is to build a device with advanced sensing capabilities, including movement detection and relative positioning within a swarm of similar nodes.
+[![CI](https://github.com/Mrunmoy/SensorFusion/actions/workflows/ci.yml/badge.svg)](https://github.com/Mrunmoy/SensorFusion/actions/workflows/ci.yml)
 
----
+Portable sensor fusion library for embedded systems — motion capture suits, medical devices, environmental sensor nodes.
 
-### Key Features
+## Overview
 
-* **Low-power design:** Focuses on efficiency for extended use.
-* **Motion & Orientation Sensing:** Utilizes the GY-87 (MPU-6050 and HMC5883L) for 9-axis motion data.
-* **Swarm Connectivity:** Explores peer-to-peer communication between nodes to determine relative positions.
-* **Versatile Applications:** The sensor data can be used for a wide range of creative and experimental applications.
+SensorFusion provides platform-agnostic sensor drivers and fusion middleware for resource-constrained microcontrollers. All code depends only on abstract HAL interfaces, so it runs on any platform (ESP32, nRF52, STM32) with any RTOS (FreeRTOS, Zephyr, ThreadX) or bare-metal — just implement the HAL for your target.
 
----
+```
+┌─────────────────────────────────────────────────┐
+│                  Application                    │
+├─────────────────────────────────────────────────┤
+│   Middleware   │ AHRS · SensorHub · FrameCodec  │
+│                │ AltitudeEstimator · HeartRate   │
+├─────────────────────────────────────────────────┤
+│    Drivers     │ MPU6050 · LSM6DSO · QMC5883L   │
+│                │ BMM350 · LPS22DF · BMP180 · …  │
+├─────────────────────────────────────────────────┤
+│      HAL       │ II2CBus · ISPIBus · IAdcChannel │
+│  (interfaces)  │ IDelayProvider · IGpioInterrupt │
+├─────────────────────────────────────────────────┤
+│   Platform     │ ESP32 / nRF52 / STM32 / Host   │
+└─────────────────────────────────────────────────┘
+```
 
-### Potential Use Cases
+## Supported Sensors
 
-The data and capabilities of this project could be applied to various fun and educational applications, such as:
+| Sensor   | Type                | Interface | Data                          | I2C Address |
+|----------|---------------------|-----------|-------------------------------|-------------|
+| MPU6050  | 6-axis IMU          | I2C       | Accel + Gyro                  | 0x68        |
+| LSM6DSO  | 6-axis IMU          | I2C       | Accel + Gyro                  | 0x6A        |
+| QMC5883L | Magnetometer        | I2C       | 3-axis magnetic field (uT)    | 0x0D        |
+| BMM350   | Magnetometer        | I2C       | 3-axis magnetic field (uT)    | 0x14        |
+| BMP180   | Barometer           | I2C       | Pressure (hPa) + Temperature  | 0x77        |
+| LPS22DF  | Barometer           | I2C       | Pressure (hPa) + Temperature  | 0x5D        |
+| ADXL345  | Accelerometer       | I2C       | 3-axis acceleration (g)       | 0x53        |
+| AD8232   | ECG Analog Frontend | ADC       | Heart signal (mV)             | —           |
 
-* **Motion Capture:** Tracking the movement of objects or body parts for animation or digital art projects.
-* **Shadow Control:** Creating interactive lighting or display effects based on physical movement.
-* **Machine Learning:** Gathering data to train models for unique applications or games.
-* **Location Awareness:** Building a personal tracking system for items or pets.
+## Middleware
 
----
+| Component          | Description                                 | RAM   | .text  |
+|--------------------|---------------------------------------------|-------|--------|
+| MahonyAHRS         | 6/9-DOF complementary filter, quaternion out| ~36 B | 3.9 KB |
+| SensorHub          | Multi-sensor manager with calibration       | ~40 B | 1.2 KB |
+| FrameCodec         | Binary frame encode/decode, CRC-16 CCITT    | 0     | 4.1 KB |
+| AltitudeEstimator  | Baro + accel complementary filter           | ~16 B | 0.5 KB |
+| HeartRateDetector  | Pan-Tompkins R-peak detection               | ~224 B| 2.8 KB |
+| Quaternion         | Header-only quaternion math                 | 16 B  | 0      |
+| RingBuffer\<T,N\>  | Header-only SPSC lock-free ring buffer      | N*T   | 0      |
 
-### Technical Design Ideas 🛠️
+## Code Size
 
-As this project evolves, several key architectural components are envisioned to enhance its functionality and ease of use:
+Release build (.text, GCC x86-64 — ARM Thumb-2 will be smaller):
 
-#### 1. Over-The-Air (OTA) Bootloader
+| Library    | .text    |
+|------------|----------|
+| Drivers    | ~19.5 KB |
+| Middleware | ~12.5 KB |
+| **Total**  | **~32 KB** |
 
-A primary design goal is to implement a custom **bootloader** that supports **Over-The-Air (OTA) updates**. This will allow for seamless firmware upgrades of the sensor nodes without needing physical access. This is crucial for:
+## Building
 
-* **Field deployment:** Updating nodes distributed in various locations.
-* **Iterative development:** Easily pushing new features, bug fixes, or experimental code to all nodes.
-* **Flexibility:** Adapting the node's behavior to different project requirements.
+Host build (runs on your development machine):
 
-#### 2. Intelligent Sensor Application
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+./build/test/driver_tests          # 229 tests
+```
 
-The core application running on each ESP32 node will be designed to handle sophisticated sensor management:
+Library-only build (no tests, no stub app):
 
-* **Sensor Polling:** Actively read data from the onboard GY-87 sensors (accelerometer, gyroscope, magnetometer) at defined intervals.
-* **Data Fusion:** Implement algorithms (e.g., Kalman filters, complementary filters) to **fuse** the raw sensor data, generating more robust and accurate information regarding the node's orientation, movement, and relative position. This fusion helps to reduce noise and overcome individual sensor limitations.
-* **Information Relay:** The processed and meaningful data will then be **relayed** to a central processing unit. This could be:
-    * Another designated "master" node in the swarm.
-    * A nearby computer for real-time visualization and analysis.
-    * A Raspberry Pi for further local processing, data logging, or integration into larger systems.
+```bash
+cmake -B build -DSENSORFUSION_BUILD_TESTS=OFF
+cmake --build build --parallel
+```
 
-This architecture ensures that each node is intelligent enough to process its local environment, contributing valuable, refined data to the overall system.
+## Using as a Library
 
----
+Add SensorFusion to your project via `add_subdirectory`:
 
-### Status: Work in Progress
+```cmake
+set(SENSORFUSION_BUILD_TESTS OFF)
+add_subdirectory(SensorFusion)
+target_link_libraries(my_app PRIVATE sensorfusion_middleware)
+```
 
-[![In Progress](https://img.shields.io/badge/Status-In_Progress-yellow)](link_to_your_project_or_issue_tracker)
+Then implement the HAL interfaces for your platform:
 
-This project is currently in the early stages of development. Check back later for updates and progress.
+```cpp
+#include "II2CBus.hpp"
+
+class MyI2C : public sf::II2CBus {
+    bool readRegister(uint8_t addr, uint8_t reg, uint8_t* buf, size_t len) override {
+        // Your platform's I2C read
+    }
+    bool writeRegister(uint8_t addr, uint8_t reg, const uint8_t* buf, size_t len) override {
+        // Your platform's I2C write
+    }
+};
+```
+
+Instantiate drivers with your HAL implementation:
+
+```cpp
+MyI2C i2c;
+MyDelay delay;
+sf::MPU6050 imu(i2c, delay);
+imu.begin();
+```
+
+## Platform Strategy
+
+This is a **monorepo** — one branch, all platforms. The library itself is pure platform-agnostic code. Platform-specific HAL implementations go in `platform/<target>/` subdirectories:
+
+```
+platform/
+  esp32/        # ESP-IDF I2C, SPI, GPIO implementations
+  nrf52/        # nRF SDK / Zephyr HAL implementations
+  stm32/        # STM32 HAL implementations
+```
+
+No per-platform branches — that's a maintenance nightmare. The library compiles and tests on any host with a C++17 compiler. Cross-compilation for a specific target only needs the matching `platform/` HAL.
+
+## Tests
+
+229 unit tests (131 driver + 98 middleware), all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.
+
+```bash
+./build/test/driver_tests
+```
+
+## Version
+
+| Component  | Version |
+|------------|---------|
+| Drivers    | 1.0.0   |
+| Middleware | 1.0.0   |
+| Firmware   | 0.1.0   |
+
+See `drivers/hal/Version.hpp`.
