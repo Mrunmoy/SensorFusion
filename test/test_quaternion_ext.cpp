@@ -6,7 +6,7 @@ using namespace sf;
 
 static constexpr float TOL = 1e-4f;
 
-// ── inverse ──────────────────────────────────────────────────────────────────
+// --- inverse ---
 
 TEST(QuaternionExtTest, InverseOfIdentityIsIdentity) {
     Quaternion q;
@@ -27,7 +27,7 @@ TEST(QuaternionExtTest, InverseEqualsConjugateForUnitQuat) {
     EXPECT_NEAR(inv.z, conj.z, TOL);
 }
 
-// ── rotateVector ─────────────────────────────────────────────────────────────
+// --- rotateVector ---
 
 TEST(QuaternionExtTest, RotateVectorIdentityNoChange) {
     Quaternion q;  // identity
@@ -39,7 +39,7 @@ TEST(QuaternionExtTest, RotateVectorIdentityNoChange) {
 }
 
 TEST(QuaternionExtTest, RotateVector90AboutZ) {
-    // 90 deg about Z: +X → +Y
+    // 90 deg about Z: +X -> +Y
     auto q = Quaternion::fromAxisAngle(0, 0, 1, 90.0f);
     Vec3 v{1.0f, 0.0f, 0.0f};
     auto r = q.rotateVector(v);
@@ -49,7 +49,7 @@ TEST(QuaternionExtTest, RotateVector90AboutZ) {
 }
 
 TEST(QuaternionExtTest, RotateVector90AboutX) {
-    // 90 deg about X: +Y → +Z
+    // 90 deg about X: +Y -> +Z
     auto q = Quaternion::fromAxisAngle(1, 0, 0, 90.0f);
     Vec3 v{0.0f, 1.0f, 0.0f};
     auto r = q.rotateVector(v);
@@ -59,7 +59,7 @@ TEST(QuaternionExtTest, RotateVector90AboutX) {
 }
 
 TEST(QuaternionExtTest, RotateVector180AboutY) {
-    // 180 deg about Y: +X → -X, +Z → -Z
+    // 180 deg about Y: +X -> -X, +Z -> -Z
     auto q = Quaternion::fromAxisAngle(0, 1, 0, 180.0f);
     Vec3 v{1.0f, 0.0f, 1.0f};
     auto r = q.rotateVector(v);
@@ -75,7 +75,7 @@ TEST(QuaternionExtTest, RotateVectorPreservesLength) {
     EXPECT_NEAR(r.length(), v.length(), TOL);
 }
 
-// ── toRotationMatrix ─────────────────────────────────────────────────────────
+// --- toRotationMatrix ---
 
 TEST(QuaternionExtTest, ToRotationMatrixIdentity) {
     Quaternion q;
@@ -111,7 +111,7 @@ TEST(QuaternionExtTest, RotationMatrixConsistentWithRotateVector) {
     EXPECT_NEAR(rv.z, mz, TOL);
 }
 
-// ── slerp ────────────────────────────────────────────────────────────────────
+// --- slerp ---
 
 TEST(QuaternionExtTest, SlerpAtZeroReturnsA) {
     auto a = Quaternion::fromAxisAngle(1, 0, 0, 0.0f);
@@ -158,7 +158,7 @@ TEST(QuaternionExtTest, SlerpResultIsUnit) {
     EXPECT_NEAR(r.norm(), 1.0f, TOL);
 }
 
-// ── fromAxisAngle ────────────────────────────────────────────────────────────
+// --- fromAxisAngle ---
 
 TEST(QuaternionExtTest, FromAxisAngle90Z) {
     auto q = Quaternion::fromAxisAngle(0, 0, 1, 90.0f);

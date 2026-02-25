@@ -5,6 +5,8 @@
 
 namespace sf {
 
+// Not thread-safe. All methods must be called from a single task/thread.
+// Threshold is in g^2 (variance of |accel| in g-units).
 class ZuptDetector {
 public:
     explicit ZuptDetector(float threshold = 0.01f);

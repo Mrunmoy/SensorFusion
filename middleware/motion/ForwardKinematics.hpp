@@ -7,11 +7,10 @@
 
 namespace sf {
 
-static constexpr size_t MAX_BONES = 16;
-
 struct Bone {
     uint8_t parentIdx;  // 0xFF = root (no parent)
     uint8_t nodeId;     // which IMU node drives this bone
+    // 2 bytes padding before float (total sizeof(Bone) == 8)
     float length;       // bone length in meters
 };
 
@@ -20,8 +19,10 @@ struct JointPose {
     Quaternion orientation;
 };
 
+// Not thread-safe. All methods must be called from a single task/thread.
 class ForwardKinematics {
 public:
+    static constexpr size_t MAX_BONES = 16;
     static constexpr uint8_t ROOT = 0xFF;
 
     bool configure(const Bone* bones, size_t count);

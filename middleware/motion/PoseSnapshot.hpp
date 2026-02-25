@@ -2,14 +2,15 @@
 
 #include "Quaternion.hpp"
 #include "Vec3.hpp"
+#include "ForwardKinematics.hpp"
 #include <cstdint>
 #include <cstddef>
 
 namespace sf {
 
-static constexpr size_t MAX_JOINTS = 16;
-
 struct PoseSnapshot {
+    static constexpr size_t MAX_JOINTS = ForwardKinematics::MAX_BONES;
+
     Vec3 positions[MAX_JOINTS]{};
     Quaternion orientations[MAX_JOINTS]{};
     uint64_t timestampUs = 0;

@@ -20,6 +20,11 @@ TEST(ForwardKinTest, ConfigureSingleRoot) {
     EXPECT_EQ(fk.boneCount(), 1u);
 }
 
+TEST(ForwardKinTest, ConfigureNullPointerWithCountFails) {
+    ForwardKinematics fk;
+    EXPECT_FALSE(fk.configure(nullptr, 1));
+}
+
 TEST(ForwardKinTest, ConfigureTooManyBonesFails) {
     Bone bones[17];
     for (auto& b : bones) b = {ForwardKinematics::ROOT, 0, 0.1f};
@@ -51,7 +56,7 @@ TEST(ForwardKinTest, RootAtOrigin) {
 }
 
 TEST(ForwardKinTest, SingleBoneChainIdentity) {
-    // Root + one child, identity orientation → child at (0, length, 0)
+    // Root + one child, identity orientation -> child at (0, length, 0)
     Bone bones[] = {
         {ForwardKinematics::ROOT, 0x01, 0.3f},
         {0, 0x02, 0.25f},
@@ -69,7 +74,7 @@ TEST(ForwardKinTest, SingleBoneChainIdentity) {
 }
 
 TEST(ForwardKinTest, SingleBoneChain90Rotation) {
-    // Parent rotated 90 deg about Z → bone goes along +X instead of +Y
+    // Parent rotated 90 deg about Z -> bone goes along -X instead of +Y
     Bone bones[] = {
         {ForwardKinematics::ROOT, 0x01, 0.3f},
         {0, 0x02, 0.25f},
@@ -81,8 +86,7 @@ TEST(ForwardKinTest, SingleBoneChain90Rotation) {
     fk.solve();
 
     auto j1 = fk.joint(1);
-    // Parent orientation rotates +Y → +X (90 about Z: x=cos90*x-sin90*y... → +Y becomes -X)
-    // Actually: 90 deg about Z rotates +Y to -X
+    // 90 deg about Z rotates +Y to -X
     EXPECT_NEAR(j1.position.x, -0.3f, TOL);
     EXPECT_NEAR(j1.position.y, 0.0f, TOL);
     EXPECT_NEAR(j1.position.z, 0.0f, TOL);
@@ -90,7 +94,7 @@ TEST(ForwardKinTest, SingleBoneChain90Rotation) {
 
 TEST(ForwardKinTest, TwoBoneChainStraight) {
     // Three joints in a line along +Y
-    // Joint positions: root(0,0,0) → joint1(0,0.3,0) → joint2(0,0.55,0)
+    // Joint positions: root(0,0,0) -> joint1(0,0.3,0) -> joint2(0,0.55,0)
     Bone bones[] = {
         {ForwardKinematics::ROOT, 0x01, 0.3f},  // root bone length 0.3
         {0, 0x02, 0.25f},                        // bone 1 length 0.25
@@ -126,7 +130,7 @@ TEST(ForwardKinTest, TwoBoneChain90Elbow) {
     fk.setNodeOrientation(0x02, Quaternion::fromAxisAngle(0, 0, 1, 90.0f));
     fk.solve();
 
-    // Elbow at (0, 0.3, 0) — uses parent orientation (identity) to place child
+    // Elbow at (0, 0.3, 0) -- uses parent orientation (identity) to place child
     auto j1 = fk.joint(1);
     EXPECT_NEAR(j1.position.x, 0.0f, TOL);
     EXPECT_NEAR(j1.position.y, 0.3f, TOL);
@@ -148,7 +152,7 @@ TEST(ForwardKinTest, ResetClearsState) {
     EXPECT_EQ(fk.boneCount(), 0u);
 }
 
-// ── PoseSnapshot tests ──────────────────────────────────────────────────────
+// --- PoseSnapshot tests ---
 
 TEST(PoseSnapshotTest, DefaultIsZeroed) {
     PoseSnapshot pose;

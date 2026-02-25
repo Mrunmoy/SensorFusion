@@ -29,6 +29,8 @@ struct Quaternion {
         return {w, -x, -y, -z};
     }
 
+    // Precondition: *this must be unit-length (|q| == 1).
+    // For non-unit quaternions use conjugate() / norm^2 instead.
     Quaternion inverse() const {
         return conjugate();
     }
@@ -93,6 +95,7 @@ struct Quaternion {
         };
     }
 
+    // angleDeg: rotation angle in degrees. Axis (ax,ay,az) is normalized internally.
     static Quaternion fromAxisAngle(float ax, float ay, float az, float angleDeg) {
         constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
         float halfRad = angleDeg * DEG_TO_RAD * 0.5f;
@@ -124,7 +127,7 @@ struct Quaternion {
         float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
         roll = std::atan2(sinr_cosp, cosr_cosp) * RAD_TO_DEG;
 
-        // Pitch (Y) — clamp for gimbal lock
+        // Pitch (Y) -- clamp for gimbal lock
         float sinp = 2.0f * (w * y - z * x);
         if (sinp >= 1.0f)
             pitch = 90.0f;

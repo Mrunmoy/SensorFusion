@@ -4,6 +4,7 @@ namespace sf {
 
 bool ForwardKinematics::configure(const Bone* bones, size_t count) {
     if (count > MAX_BONES) return false;
+    if (count > 0 && bones == nullptr) return false;
     for (size_t i = 0; i < count; ++i) {
         if (bones[i].parentIdx != ROOT && bones[i].parentIdx >= i)
             return false;  // must be in topological order
@@ -41,6 +42,7 @@ void ForwardKinematics::solve() {
 }
 
 const JointPose& ForwardKinematics::joint(size_t index) const {
+    if (index >= count_) index = (count_ > 0) ? count_ - 1 : 0;
     return joints_[index];
 }
 

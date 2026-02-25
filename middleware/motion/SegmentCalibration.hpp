@@ -4,10 +4,12 @@
 
 namespace sf {
 
+// Not thread-safe. All methods must be called from a single task/thread.
 class SegmentCalibration {
 public:
     void captureReference(const Quaternion& currentOrientation) {
         qRef_ = currentOrientation;
+        qRef_.normalize();
         calibrated_ = true;
     }
 
