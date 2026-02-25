@@ -51,6 +51,11 @@ target_sources(driver_tests PRIVATE
     test_forward_kinematics.cpp
     test_zupt_detector.cpp
     test_pose_codec.cpp
+    test_crc8_sensirion.cpp
+    test_lis3mdl.cpp
+    test_sht40.cpp
+    test_sgp40.cpp
+    test_bq25101.cpp
 )
 
 include(GoogleTest)

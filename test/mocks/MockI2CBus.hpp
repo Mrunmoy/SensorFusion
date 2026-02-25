@@ -14,6 +14,12 @@ public:
                 (uint8_t devAddr, uint8_t reg, const uint8_t* data, size_t len),
                 (override));
     MOCK_METHOD(bool, probe, (uint8_t devAddr), (override));
+    MOCK_METHOD(bool, rawWrite,
+                (uint8_t devAddr, const uint8_t* data, size_t len),
+                (override));
+    MOCK_METHOD(bool, rawRead,
+                (uint8_t devAddr, uint8_t* buf, size_t len),
+                (override));
 };
 
 }} // namespace sf::test

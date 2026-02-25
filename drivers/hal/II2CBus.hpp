@@ -30,6 +30,20 @@ public:
     // Multi-byte reads/writes: use readRegister/writeRegister directly.
     // Each driver handles its own sensor-to-host byte order conversion
     // internally via sensorToHost16() — no endianness leaks into the bus API.
+
+    // --- Command-based I2C (no register address) ---
+    // Used by sensors like SHT40/SGP40 that use raw command bytes.
+    // Default implementations return false so existing platform HALs still compile.
+
+    virtual bool rawWrite(uint8_t devAddr, const uint8_t* data, size_t len) {
+        (void)devAddr; (void)data; (void)len;
+        return false;
+    }
+
+    virtual bool rawRead(uint8_t devAddr, uint8_t* buf, size_t len) {
+        (void)devAddr; (void)buf; (void)len;
+        return false;
+    }
 };
 
 } // namespace sf

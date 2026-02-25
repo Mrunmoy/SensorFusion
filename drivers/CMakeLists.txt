@@ -12,6 +12,11 @@ target_include_directories(sensorfusion_drivers PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/bmm350
     ${CMAKE_CURRENT_SOURCE_DIR}/lps22df
     ${CMAKE_CURRENT_SOURCE_DIR}/lsm6dso
+    ${CMAKE_CURRENT_SOURCE_DIR}/lis3mdl
+    ${CMAKE_CURRENT_SOURCE_DIR}/sht40
+    ${CMAKE_CURRENT_SOURCE_DIR}/sgp40
+    ${CMAKE_CURRENT_SOURCE_DIR}/bq25101
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/calibration
     ${CMAKE_CURRENT_SOURCE_DIR}/factory_test
     ${CMAKE_CURRENT_SOURCE_DIR}/../middleware/common
@@ -29,6 +34,10 @@ target_sources(sensorfusion_drivers PRIVATE
     bmm350/BMM350.cpp
     lps22df/LPS22DF.cpp
     lsm6dso/LSM6DSO.cpp
+    lis3mdl/LIS3MDL.cpp
+    sht40/SHT40.cpp
+    sgp40/SGP40.cpp
+    bq25101/BQ25101.cpp
     calibration/CalibrationStore.cpp
     factory_test/FactoryTest.cpp
     factory_test/SensorFactoryTests.cpp
