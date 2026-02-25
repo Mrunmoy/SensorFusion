@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include "Vec3.hpp"
 
 namespace sf {
 
@@ -26,6 +27,80 @@ struct Quaternion {
 
     Quaternion conjugate() const {
         return {w, -x, -y, -z};
+    }
+
+    Quaternion inverse() const {
+        return conjugate();
+    }
+
+    Vec3 rotateVector(const Vec3& v) const {
+        // Optimized q*v*q^-1 using cross-product form:
+        // v' = v + 2w*(qv x v) + 2*(qv x (qv x v))
+        Vec3 qv{x, y, z};
+        Vec3 t{
+            2.0f * (qv.y * v.z - qv.z * v.y),
+            2.0f * (qv.z * v.x - qv.x * v.z),
+            2.0f * (qv.x * v.y - qv.y * v.x)
+        };
+        return {
+            v.x + w * t.x + (qv.y * t.z - qv.z * t.y),
+            v.y + w * t.y + (qv.z * t.x - qv.x * t.z),
+            v.z + w * t.z + (qv.x * t.y - qv.y * t.x)
+        };
+    }
+
+    void toRotationMatrix(float mat[9]) const {
+        float xx = x * x, yy = y * y, zz = z * z;
+        float xy = x * y, xz = x * z, yz = y * z;
+        float wx = w * x, wy = w * y, wz = w * z;
+        mat[0] = 1.0f - 2.0f * (yy + zz);
+        mat[1] = 2.0f * (xy - wz);
+        mat[2] = 2.0f * (xz + wy);
+        mat[3] = 2.0f * (xy + wz);
+        mat[4] = 1.0f - 2.0f * (xx + zz);
+        mat[5] = 2.0f * (yz - wx);
+        mat[6] = 2.0f * (xz - wy);
+        mat[7] = 2.0f * (yz + wx);
+        mat[8] = 1.0f - 2.0f * (xx + yy);
+    }
+
+    static Quaternion slerp(const Quaternion& a, const Quaternion& b, float t) {
+        float dot = a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
+        Quaternion b2 = b;
+        if (dot < 0.0f) {
+            dot = -dot;
+            b2 = {-b.w, -b.x, -b.y, -b.z};
+        }
+        if (dot > 0.9995f) {
+            Quaternion r{
+                a.w + t * (b2.w - a.w),
+                a.x + t * (b2.x - a.x),
+                a.y + t * (b2.y - a.y),
+                a.z + t * (b2.z - a.z)
+            };
+            r.normalize();
+            return r;
+        }
+        float theta = std::acos(dot);
+        float sinTheta = std::sin(theta);
+        float wa = std::sin((1.0f - t) * theta) / sinTheta;
+        float wb = std::sin(t * theta) / sinTheta;
+        return {
+            wa * a.w + wb * b2.w,
+            wa * a.x + wb * b2.x,
+            wa * a.y + wb * b2.y,
+            wa * a.z + wb * b2.z
+        };
+    }
+
+    static Quaternion fromAxisAngle(float ax, float ay, float az, float angleDeg) {
+        constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+        float halfRad = angleDeg * DEG_TO_RAD * 0.5f;
+        float len = std::sqrt(ax * ax + ay * ay + az * az);
+        if (len < 1e-10f) return {1.0f, 0.0f, 0.0f, 0.0f};
+        float inv = 1.0f / len;
+        float s = std::sin(halfRad);
+        return {std::cos(halfRad), ax * inv * s, ay * inv * s, az * inv * s};
     }
 
     Quaternion multiply(const Quaternion& r) const {

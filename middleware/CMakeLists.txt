@@ -9,6 +9,7 @@ target_include_directories(sensorfusion_middleware PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/codec
     ${CMAKE_CURRENT_SOURCE_DIR}/altitude
     ${CMAKE_CURRENT_SOURCE_DIR}/ecg
+    ${CMAKE_CURRENT_SOURCE_DIR}/motion
 )
 
 target_compile_features(sensorfusion_middleware PUBLIC cxx_std_17)
@@ -21,4 +22,7 @@ target_sources(sensorfusion_middleware PRIVATE
     codec/FrameCodec.cpp
     altitude/AltitudeEstimator.cpp
     ecg/HeartRateDetector.cpp
+    motion/LinearAccelExtractor.cpp
+    motion/ForwardKinematics.cpp
+    motion/ZuptDetector.cpp
 )

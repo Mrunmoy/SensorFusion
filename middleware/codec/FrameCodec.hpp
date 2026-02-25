@@ -15,6 +15,7 @@ enum class SensorType : uint8_t {
     BARO       = 0x05,
     ECG        = 0x06,
     IMU_ALL    = 0x07,
+    POSE       = 0x08,
 };
 
 class FrameCodec {
@@ -60,6 +61,11 @@ public:
                                const AccelData& accel, const GyroData& gyro,
                                float tempC,
                                uint8_t* buf, size_t bufLen);
+
+    static size_t encodePose(uint8_t nodeId, uint64_t ts,
+                             float posX, float posY, float posZ,
+                             const Quaternion& orientation,
+                             uint8_t* buf, size_t bufLen);
 
     // Decode — fills header and copies payload bytes
     static bool decode(const uint8_t* buf, size_t len,

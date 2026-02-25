@@ -44,6 +44,13 @@ target_sources(driver_tests PRIVATE
     test_frame_codec.cpp
     test_altitude_estimator.cpp
     test_heart_rate_detector.cpp
+    test_vec3.cpp
+    test_quaternion_ext.cpp
+    test_segment_calibration.cpp
+    test_linear_accel_extractor.cpp
+    test_forward_kinematics.cpp
+    test_zupt_detector.cpp
+    test_pose_codec.cpp
 )
 
 include(GoogleTest)

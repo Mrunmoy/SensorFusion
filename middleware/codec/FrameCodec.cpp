@@ -194,6 +194,25 @@ size_t FrameCodec::encodeIMUAll(uint8_t nodeId, uint64_t ts,
     return finalize(buf, pos, bufLen);
 }
 
+size_t FrameCodec::encodePose(uint8_t nodeId, uint64_t ts,
+                               float posX, float posY, float posZ,
+                               const Quaternion& orientation,
+                               uint8_t* buf, size_t bufLen) {
+    constexpr size_t PAYLOAD_SIZE = 28;  // 3*4 pos + 4*4 quat
+    constexpr size_t FRAME_SIZE = HEADER_SIZE + PAYLOAD_SIZE + CRC_SIZE;
+    if (bufLen < FRAME_SIZE) return 0;
+
+    size_t pos = writeHeader(nodeId, SensorType::POSE, ts, buf);
+    writeFloat(posX, &buf[pos]); pos += 4;
+    writeFloat(posY, &buf[pos]); pos += 4;
+    writeFloat(posZ, &buf[pos]); pos += 4;
+    writeFloat(orientation.w, &buf[pos]); pos += 4;
+    writeFloat(orientation.x, &buf[pos]); pos += 4;
+    writeFloat(orientation.y, &buf[pos]); pos += 4;
+    writeFloat(orientation.z, &buf[pos]); pos += 4;
+    return finalize(buf, pos, bufLen);
+}
+
 // --- Decode ---
 bool FrameCodec::decode(const uint8_t* buf, size_t len,
                          FrameHeader& hdr,
