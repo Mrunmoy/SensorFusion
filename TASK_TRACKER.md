@@ -16,7 +16,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Define environmental interfaces (`IHumiditySensor`, `IVocSensor`)
 - [x] Integrate SHT40 + SGP40 into SensorHub using new interfaces
 - [x] Bump `DRIVER_VERSION` in `drivers/hal/Version.hpp`
-- [ ] Regenerate code-size dashboard output
+- [x] Regenerate code-size dashboard output
 
 ## Phase 2: Factory Test Overhaul
 - [ ] Add per-sensor self-test coverage (ID, sanity, range)
@@ -58,3 +58,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 1.2 complete: Added `IHumiditySensor`/`IVocSensor` and wired SHT40/SGP40 to middleware interfaces (2026-03-07)
 - [x] Phase 1.3 complete: SensorHub humidity/VOC registration and read APIs with host-side tests (2026-03-07)
 - [x] Phase 1.4 complete: Bumped driver version to `1.1.0` with regression test coverage (2026-03-07)
+- [x] Phase 1.5 complete: Regenerated size dashboard and verified new objects appear in output (2026-03-07)
