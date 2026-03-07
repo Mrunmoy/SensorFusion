@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.16)
+
+if(SENSORFUSION_PLATFORM STREQUAL "esp32")
+    add_subdirectory(esp32)
+elseif(SENSORFUSION_PLATFORM STREQUAL "stm32")
+    add_subdirectory(stm32)
+elseif(SENSORFUSION_PLATFORM STREQUAL "nrf52")
+    add_subdirectory(nrf52)
+else()
+    message(FATAL_ERROR "Unsupported SENSORFUSION_PLATFORM='${SENSORFUSION_PLATFORM}'")
+endif()

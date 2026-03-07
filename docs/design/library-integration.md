@@ -13,6 +13,18 @@ ESP32, nRF52, or STM32 needs to:
 Without shipped platform backends, every user rewrites the same I2C/GPIO
 wrappers. That's a bad experience and a source of bugs.
 
+## Current Status (2026-03-07)
+
+Phase 5 is now implemented in-repo:
+
+- `platform/esp32`: ESP-IDF backend target `sensorfusion_platform_esp32`
+- `platform/stm32`: STM32 HAL backend target `sensorfusion_platform_stm32`
+- `platform/nrf52`: nRF52/nrfx backend target `sensorfusion_platform_nrf52`
+- Example integration skeletons:
+  - `examples/esp32-sensor-node/`
+  - `examples/stm32-env-monitor/`
+  - `examples/nrf52-motion-tracker/`
+
 ## Proposed Structure
 
 ```
@@ -81,18 +93,13 @@ target_link_libraries(my_app PRIVATE
 
 ```cmake
 # Core targets (always built)
-add_subdirectory(drivers)       # → sensorfusion::drivers
-add_subdirectory(middleware)     # → sensorfusion::middleware
+add_subdirectory(drivers)
+add_subdirectory(middleware)
 
-# Platform backends (opt-in)
-option(SENSORFUSION_PLATFORM "Platform backend: esp32, nrf52, stm32, none" "none")
-
-if(SENSORFUSION_PLATFORM STREQUAL "esp32")
-    add_subdirectory(platform/esp32)
-elseif(SENSORFUSION_PLATFORM STREQUAL "nrf52")
-    add_subdirectory(platform/nrf52)
-elseif(SENSORFUSION_PLATFORM STREQUAL "stm32")
-    add_subdirectory(platform/stm32)
+# Platform backend (opt-in)
+set(SENSORFUSION_PLATFORM "none" CACHE STRING "Optional platform backend: none, esp32, stm32, nrf52")
+if(NOT SENSORFUSION_PLATFORM STREQUAL "none")
+    add_subdirectory(platform)
 endif()
 
 # Tests (host-only, off by default for embedded builds)

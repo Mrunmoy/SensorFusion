@@ -65,31 +65,31 @@ Ship optional `platform/<target>/` backends so users don't rewrite the same I2C/
 Users who prefer custom HAL just implement the interfaces directly (Method 3 in design doc).
 
 ### STM32 (e.g., STM32F4, STM32L4)
-- [ ] `II2CBus` → STM32 HAL I2C (register + raw command modes)
-- [ ] `ISPIBus` → STM32 HAL SPI
-- [ ] `IGpioInterrupt` → EXTI interrupt
-- [ ] `IGpioInput` / `IGpioOutput` → GPIO read/write
-- [ ] `IAdcChannel` → STM32 ADC (for AD8232)
-- [ ] `IDelayProvider` → SysTick / HAL_Delay + DWT cycle counter
-- [ ] `INvStore` → internal flash or external EEPROM
+- [x] `II2CBus` → STM32 HAL I2C (register + raw command modes)
+- [x] `ISPIBus` → STM32 HAL SPI
+- [x] `IGpioInterrupt` → EXTI interrupt hook (`StmGpioInterrupt::handleIrq`)
+- [x] `IGpioInput` / `IGpioOutput` → GPIO read/write
+- [x] `IAdcChannel` → STM32 ADC (for AD8232)
+- [x] `IDelayProvider` → SysTick / HAL_Delay + DWT cycle counter
+- [x] `INvStore` → internal flash-backed region adapter
 
 ### nRF52 (e.g., nRF52840)
-- [ ] `II2CBus` → nRF TWI/TWIM driver
-- [ ] `ISPIBus` → nRF SPIM driver
-- [ ] `IGpioInterrupt` → GPIOTE
-- [ ] `IGpioInput` / `IGpioOutput` → nRF GPIO
-- [ ] `IAdcChannel` → nRF SAADC
-- [ ] `IDelayProvider` → nrf_delay + RTC/timer
-- [ ] `INvStore` → FDS (Flash Data Storage) or external EEPROM
+- [x] `II2CBus` → nRF TWI/TWIM driver
+- [x] `ISPIBus` → nRF SPIM driver
+- [x] `IGpioInterrupt` → GPIOTE hook (`NrfGpioInterrupt::handleIrq`)
+- [x] `IGpioInput` / `IGpioOutput` → nRF GPIO
+- [x] `IAdcChannel` → nRF SAADC
+- [x] `IDelayProvider` → nrf_delay + RTC/timer
+- [x] `INvStore` → FDS (Flash Data Storage) backend
 
 ### ESP32 (ESP-IDF)
-- [ ] `II2CBus` → ESP-IDF I2C master driver
-- [ ] `ISPIBus` → ESP-IDF SPI master
-- [ ] `IGpioInterrupt` → GPIO ISR
-- [ ] `IGpioInput` / `IGpioOutput` → gpio_get/set_level
-- [ ] `IAdcChannel` → ESP ADC oneshot/continuous
-- [ ] `IDelayProvider` → vTaskDelay / esp_timer
-- [ ] `INvStore` → NVS (Non-Volatile Storage) partition
+- [x] `II2CBus` → ESP-IDF I2C master driver
+- [x] `ISPIBus` → ESP-IDF SPI master
+- [x] `IGpioInterrupt` → GPIO ISR
+- [x] `IGpioInput` / `IGpioOutput` → gpio_get/set_level
+- [x] `IAdcChannel` → ESP ADC oneshot
+- [x] `IDelayProvider` → vTaskDelay / esp_timer
+- [x] `INvStore` → NVS (Non-Volatile Storage) partition
 
 ### Common platform concerns
 - [ ] RTOS integration (FreeRTOS mutex for bus sharing, Zephyr k_mutex, bare-metal critical sections)

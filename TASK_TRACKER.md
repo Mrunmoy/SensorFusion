@@ -40,11 +40,11 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Add basic wear-leveling strategy (if flash backend)
 
 ## Phase 5: Platform HAL Backends
-- [ ] ESP32 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
-- [ ] STM32 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
-- [ ] nRF52 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
-- [ ] Add one end-to-end example per platform
-- [ ] Document integration paths (submodule, FetchContent, custom HAL)
+- [x] ESP32 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
+- [x] STM32 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
+- [x] nRF52 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
+- [x] Add one end-to-end example per platform
+- [x] Document integration paths (submodule, FetchContent, custom HAL)
 
 ## Phase 6: Future / Stretch
 - [ ] CI cross-compilation jobs for ARM targets
@@ -73,3 +73,8 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 4.2 complete: Added `CalibrationStore` integration tests against AT24Cxx backend with sampled bus behavior (2026-03-07)
 - [x] Phase 4.3 complete: Verified CRC corruption detection in AT24Cxx-backed calibration persistence tests (2026-03-07)
 - [x] Phase 4.4 complete: Added flash-style `WearLevelingNvStore` page-rotation backend with host-side tests for rotation, cross-page writes, and corruption fallback (2026-03-07)
+- [x] Phase 5.1 complete: Added optional `SENSORFUSION_PLATFORM` selection and platform build routing in top-level CMake (2026-03-07)
+- [x] Phase 5.2 complete: Implemented ESP32 HAL backend (`platform/esp32`) for I2C/SPI/GPIO/ADC/Delay/NVS (2026-03-07)
+- [x] Phase 5.3 complete: Implemented STM32 HAL backend (`platform/stm32`) for I2C/SPI/GPIO/ADC/Delay/NV region store (2026-03-07)
+- [x] Phase 5.4 complete: Implemented nRF52 HAL backend (`platform/nrf52`) for TWIM/SPIM/GPIO/SAADC/Delay/FDS store (2026-03-07)
+- [x] Phase 5.5 complete: Added platform example skeleton apps and backend integration docs (`platform/README.md`, design doc, README updates) (2026-03-07)

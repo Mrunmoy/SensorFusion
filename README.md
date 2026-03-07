@@ -77,6 +77,13 @@ cmake -B build -DSENSORFUSION_BUILD_TESTS=OFF
 cmake --build build --parallel
 ```
 
+Enable a shipped platform backend (optional):
+
+```bash
+cmake -B build -DSENSORFUSION_BUILD_TESTS=OFF -DSENSORFUSION_PLATFORM=esp32
+cmake --build build --parallel
+```
+
 Regenerate the GitHub Pages code-size dashboard locally:
 
 ```bash
@@ -89,6 +96,7 @@ Add SensorFusion to your project via `add_subdirectory`:
 
 ```cmake
 set(SENSORFUSION_BUILD_TESTS OFF)
+set(SENSORFUSION_PLATFORM "none") # or: esp32 / stm32 / nrf52
 add_subdirectory(SensorFusion)
 target_link_libraries(my_app PRIVATE sensorfusion_middleware)
 ```
@@ -114,7 +122,7 @@ Instantiate drivers with your HAL implementation:
 MyI2C i2c;
 MyDelay delay;
 sf::MPU6050 imu(i2c, delay);
-imu.begin();
+imu.init();
 ```
 
 ## Platform Strategy
@@ -123,12 +131,20 @@ This is a **monorepo** — one branch, all platforms. The library itself is pure
 
 ```
 platform/
-  esp32/        # ESP-IDF I2C, SPI, GPIO implementations
-  nrf52/        # nRF SDK / Zephyr HAL implementations
-  stm32/        # STM32 HAL implementations
+  esp32/        # EspI2CBus, EspSpiBus, EspGpio*, EspAdcChannel, EspDelay, EspNvStore
+  nrf52/        # NrfTwimBus, NrfSpimBus, NrfGpio*, NrfSaadcChannel, NrfDelay, NrfFdsStore
+  stm32/        # StmI2CBus, StmSpiBus, StmGpio*, StmAdcChannel, StmDelay, StmNvStore
 ```
 
 No per-platform branches — that's a maintenance nightmare. The library compiles and tests on any host with a C++17 compiler. Cross-compilation for a specific target only needs the matching `platform/` HAL.
+
+Example app skeletons are provided in:
+
+```
+examples/esp32-sensor-node/
+examples/stm32-env-monitor/
+examples/nrf52-motion-tracker/
+```
 
 ## Tests
 
