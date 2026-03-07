@@ -48,3 +48,12 @@ The runtime wrapper `MocapBleTransport` remains available for integration conven
 `extern "C" bool sf_mocap_ble_notify(const uint8_t* data, size_t len);`
 
 Implement this symbol in board BLE code (NUS/custom GATT) to forward notifications.
+
+## Timestamp Sync Anchor
+
+- Quaternion frames still carry `timestampUs`, but the node should map this value to central time once sync is locked.
+- Recommended anchor exchange:
+  1. Central sends sync request at `t0_central`.
+  2. Node records local receive/send time and returns `t1_node`.
+  3. Central sends anchor pair (`local_us`, `central_us`) back to node.
+- `middleware/codec/TimestampSync` consumes anchor pairs and maintains filtered offset correction for transmit timestamps.

@@ -21,6 +21,7 @@ target_sources(sensorfusion_middleware PRIVATE
     hub/SensorHub.cpp
     codec/FrameCodec.cpp
     codec/MocapBleTransport.cpp
+    codec/TimestampSync.cpp
     altitude/AltitudeEstimator.cpp
     ecg/HeartRateDetector.cpp
     motion/LinearAccelExtractor.cpp

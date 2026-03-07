@@ -47,6 +47,7 @@ target_sources(driver_tests PRIVATE
     test_sensor_hub.cpp
     test_frame_codec.cpp
     test_mocap_ble_transport.cpp
+    test_timestamp_sync.cpp
     test_altitude_estimator.cpp
     test_heart_rate_detector.cpp
     test_vec3.cpp
