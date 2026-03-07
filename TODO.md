@@ -33,7 +33,7 @@ The current factory test code (`drivers/factory_test/`) is very rudimentary and 
 
 Current `CalibrationStore` is minimal. Needs to be completed for all sensors requiring calibration:
 
-- [ ] **Magnetometer calibration** — hard-iron/soft-iron for QMC5883L, BMM350, LIS3MDL
+- [x] **Magnetometer calibration** — added hard-iron/diagonal soft-iron fitter with host-side tests
 - [ ] **Accelerometer calibration** — offset + scale for MPU6050, LSM6DSO, ADXL345
 - [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
 - [x] **Barometer calibration** — added BARO calibration slot support for persisted sea-level pressure reference
