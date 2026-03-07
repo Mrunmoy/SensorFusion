@@ -65,7 +65,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Add BLE packet contract + retry/MTU transport helper (`MocapBleTransport`) with unit tests
 - [x] Refactor BLE transport to compile-time policy core (`MocapBleTransportT<Notifier>`) with runtime wrapper compatibility
 - [x] Publish HTML design portal with Mermaid architecture/class/sequence diagrams
-- [ ] Add node calibration command flow (stationary/T-pose triggers)
+- [x] Add node calibration command flow (stationary/T-pose triggers)
 - [ ] Add timestamp sync protocol with central node
 - [ ] Add battery and health telemetry frame
 - [ ] Add node-side logging/replay hooks for hard-motion tuning
@@ -103,3 +103,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 7.3 complete: Added BLE quaternion packet contract doc and `MocapBleTransport` (MTU guard, retry, drop/sent stats) with host-side tests and nRF example hook (`sf_mocap_ble_notify`) (2026-03-07)
 - [x] Phase 7.4 complete: Refactored BLE transport to policy-based compile-time core with branch-likely hints and added template-path tests; preserved existing runtime API (2026-03-07)
 - [x] Phase 7.5 complete: Added `docs/design/html/` portal with Mermaid diagrams for mocap system, BLE transport contract, integration model, and build validation (2026-03-07)
+- [x] Phase 7.6 complete: Added `MocapCalibrationFlow` command state machine (stationary/T-pose/reset) with host-side unit tests (2026-03-07)

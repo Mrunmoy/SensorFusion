@@ -56,6 +56,7 @@ target_sources(driver_tests PRIVATE
     test_forward_kinematics.cpp
     test_zupt_detector.cpp
     test_mocap_node_pipeline.cpp
+    test_mocap_calibration_flow.cpp
     test_pose_codec.cpp
     test_crc8_sensirion.cpp
     test_lis3mdl.cpp

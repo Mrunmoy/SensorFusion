@@ -27,4 +27,5 @@ target_sources(sensorfusion_middleware PRIVATE
     motion/ForwardKinematics.cpp
     motion/ZuptDetector.cpp
     motion/MocapNodePipeline.cpp
+    motion/MocapCalibrationFlow.cpp
 )

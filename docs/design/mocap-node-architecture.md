@@ -42,8 +42,15 @@ This document defines the body-worn mocap sensor node only. Central receiver and
 ## Immediate Next Engineering Tasks
 
 - Implement board BLE sender that defines `sf_mocap_ble_notify(...)` for the transport hook.
-- Add calibration and stationary-detection commands.
+- Wire platform command ingress to `middleware/motion/MocapCalibrationFlow` (stationary capture, T-pose capture, reset).
 - Add timestamp synchronization with the central node.
+
+## Calibration Command Flow
+
+- `MocapCalibrationFlow::Command::CaptureStationary`: captures baseline reference from next sample.
+- `MocapCalibrationFlow::Command::CaptureTPose`: captures T-pose reference (requires stationary capture first).
+- `MocapCalibrationFlow::Command::Reset`: clears calibration state.
+- `MocapCalibrationFlow::apply(...)` provides calibrated quaternion output for node transmit path.
 
 ## Related Docs
 
