@@ -4,6 +4,7 @@
 #include "MockDelayProvider.hpp"
 #include "SGP40.hpp"
 #include "Crc8Sensirion.hpp"
+#include <type_traits>
 
 using namespace sf;
 using namespace sf::test;
@@ -11,6 +12,9 @@ using ::testing::_;
 using ::testing::Return;
 
 static constexpr uint8_t ADDR = 0x59;
+
+static_assert(std::is_base_of<IVocSensor, SGP40>::value,
+              "SGP40 must satisfy VOC middleware interface");
 
 class SGP40Test : public ::testing::Test {
 protected:
@@ -117,6 +121,20 @@ TEST_F(SGP40Test, MeasureRawWithCompensation) {
     EXPECT_EQ(voc, 5000);
 }
 
+TEST_F(SGP40Test, ReadVocRawUsesDefaultCompensation) {
+    expectInit();
+    SGP40 sensor(bus, delay);
+    ASSERT_TRUE(sensor.init());
+
+    EXPECT_CALL(bus, rawWrite(ADDR, _, 8)).WillOnce(Return(true));
+    EXPECT_CALL(delay, delayMs(30));
+    expectVocResponse(4242);
+
+    uint16_t voc = 0;
+    ASSERT_TRUE(sensor.readVocRaw(voc));
+    EXPECT_EQ(voc, 4242);
+}
+
 TEST_F(SGP40Test, MeasureRawCrcFail) {
     expectInit();
     SGP40 sensor(bus, delay);
@@ -189,5 +207,5 @@ TEST_F(SGP40Test, MeasureRawMaxValue) {
 }
 
 TEST_F(SGP40Test, SizeofIsSmall) {
-    EXPECT_LE(sizeof(SGP40), 24);
+    EXPECT_LE(sizeof(SGP40), 32);
 }
