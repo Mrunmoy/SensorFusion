@@ -2,6 +2,7 @@
 
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -17,13 +18,14 @@ struct SHT40Config {
     uint8_t        address   = 0x44;
 };
 
-class SHT40 {
+class SHT40 : public IHumiditySensor {
 public:
     SHT40(II2CBus& bus, IDelayProvider& delay, const SHT40Config& cfg = {});
 
     bool init();
     bool readSerial(uint32_t& serial);
     bool measure(float& temperatureC, float& humidityPercent);
+    bool readHumidityPercent(float& humidityPercent) override;
 
 private:
     II2CBus& bus_;

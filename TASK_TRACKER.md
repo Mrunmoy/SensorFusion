@@ -13,7 +13,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 
 ## Phase 1: Immediate Integration Gaps
 - [x] Add ADXL345 middleware-facing interface support
-- [ ] Define environmental interfaces (`IHumiditySensor`, `IVocSensor`)
+- [x] Define environmental interfaces (`IHumiditySensor`, `IVocSensor`)
 - [ ] Integrate SHT40 + SGP40 into SensorHub using new interfaces
 - [ ] Bump `DRIVER_VERSION` in `drivers/hal/Version.hpp`
 - [ ] Regenerate code-size dashboard output
@@ -55,3 +55,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 ## Progress Log
 - [x] Tracker created (2026-03-07)
 - [x] Phase 1.1 complete: ADXL345 middleware-facing interface support via `IAccelSensor` + SensorHub accel-only path (2026-03-07)
+- [x] Phase 1.2 complete: Added `IHumiditySensor`/`IVocSensor` and wired SHT40/SGP40 to middleware interfaces (2026-03-07)

@@ -4,6 +4,7 @@
 #include "MockDelayProvider.hpp"
 #include "SHT40.hpp"
 #include "Crc8Sensirion.hpp"
+#include <type_traits>
 
 using namespace sf;
 using namespace sf::test;
@@ -12,6 +13,9 @@ using ::testing::Return;
 using ::testing::DoAll;
 
 static constexpr uint8_t ADDR = 0x44;
+
+static_assert(std::is_base_of<IHumiditySensor, SHT40>::value,
+              "SHT40 must satisfy humidity middleware interface");
 
 // Helper: compute CRC for a 2-byte word
 static uint8_t crc2(uint8_t a, uint8_t b) {
@@ -106,6 +110,25 @@ TEST_F(SHT40Test, MeasureHighPrecision) {
     float temp, hum;
     ASSERT_TRUE(sensor.measure(temp, hum));
     EXPECT_NEAR(temp, 25.003f, 0.1f);
+    EXPECT_NEAR(hum, 44.004f, 0.1f);
+}
+
+TEST_F(SHT40Test, ReadHumidityPercentUsesMeasurementPath) {
+    expectInit();
+    SHT40 sensor(bus, delay);
+    ASSERT_TRUE(sensor.init());
+
+    EXPECT_CALL(bus, rawWrite(ADDR, _, 1)).WillOnce(Return(true));
+    EXPECT_CALL(delay, delayMs(9));
+    EXPECT_CALL(bus, rawRead(ADDR, _, 6))
+        .WillOnce([](uint8_t, uint8_t* buf, size_t) {
+            buf[0] = 0x66; buf[1] = 0x66; buf[2] = crc2(0x66, 0x66);
+            buf[3] = 0x66; buf[4] = 0x66; buf[5] = crc2(0x66, 0x66);
+            return true;
+        });
+
+    float hum = 0.0f;
+    ASSERT_TRUE(sensor.readHumidityPercent(hum));
     EXPECT_NEAR(hum, 44.004f, 0.1f);
 }
 
@@ -287,5 +310,5 @@ TEST_F(SHT40Test, CustomAddress) {
 }
 
 TEST_F(SHT40Test, SizeofIsSmall) {
-    EXPECT_LE(sizeof(SHT40), 24);
+    EXPECT_LE(sizeof(SHT40), 32);
 }

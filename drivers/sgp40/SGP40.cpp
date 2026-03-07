@@ -65,6 +65,10 @@ bool SGP40::measureRaw(uint16_t& vocRaw) {
     return readVocResponse(vocRaw);
 }
 
+bool SGP40::readVocRaw(uint16_t& vocRaw) {
+    return measureRaw(vocRaw);
+}
+
 bool SGP40::measureRaw(uint16_t& vocRaw, float humidityPercent, float temperatureC) {
     uint16_t humTicks = static_cast<uint16_t>(humidityPercent * 65535.0f / 100.0f + 0.5f);
     uint16_t tempTicks = static_cast<uint16_t>((temperatureC + 45.0f) * 65535.0f / 175.0f + 0.5f);

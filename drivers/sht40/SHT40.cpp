@@ -80,4 +80,9 @@ bool SHT40::measure(float& temperatureC, float& humidityPercent) {
     return true;
 }
 
+bool SHT40::readHumidityPercent(float& humidityPercent) {
+    float temperatureC;
+    return measure(temperatureC, humidityPercent);
+}
+
 } // namespace sf

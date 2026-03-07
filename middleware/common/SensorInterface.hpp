@@ -30,4 +30,16 @@ public:
     virtual bool readPressureHPa(float& hPa) = 0;
 };
 
+class IHumiditySensor {
+public:
+    virtual ~IHumiditySensor() = default;
+    virtual bool readHumidityPercent(float& humidityPercent) = 0;
+};
+
+class IVocSensor {
+public:
+    virtual ~IVocSensor() = default;
+    virtual bool readVocRaw(uint16_t& vocRaw) = 0;
+};
+
 } // namespace sf
