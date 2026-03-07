@@ -102,6 +102,13 @@ bool CalibrationStore::loadOrDefault(SensorId id, CalibrationData& data, const C
     return false;
 }
 
+bool CalibrationStore::ensureInitialized(SensorId id, CalibrationData& data, const CalibrationData& initial) {
+    if (load(id, data)) return true;
+    data = initial;
+    save(id, initial);
+    return false;
+}
+
 bool CalibrationStore::isValid(SensorId id) {
     CalibrationData tmp;
     return load(id, tmp);
