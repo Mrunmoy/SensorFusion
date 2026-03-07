@@ -46,11 +46,11 @@ Current `CalibrationStore` is minimal. Needs to be completed for all sensors req
 
 Need a persistent storage driver for calibration parameters:
 
-- [ ] **EEPROM driver** — I2C EEPROM (e.g., AT24Cxx family) or SPI flash
-- [ ] **Wire up to `INvStore` HAL** — the interface exists but no real implementation yet
-- [ ] **CalibrationStore ↔ EEPROM** — load on boot, save after calibration
+- [x] **EEPROM driver** — I2C EEPROM backend implemented for AT24Cxx family (`AT24CxxNvStore`)
+- [x] **Wire up to `INvStore` HAL** — concrete `INvStore` implementation now available via `AT24CxxNvStore`
+- [x] **CalibrationStore ↔ EEPROM** — covered with host-side integration tests over AT24Cxx bus model
 - [ ] **Wear leveling** (if flash-based) — simple page-rotation scheme
-- [ ] **CRC protection** — detect corrupt stored data
+- [x] **CRC protection** — corruption detection enforced in `CalibrationStore` and verified in AT24Cxx integration test
 
 ---
 

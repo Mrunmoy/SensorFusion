@@ -27,6 +27,7 @@ target_compile_features(driver_tests PRIVATE cxx_std_17)
 target_sources(driver_tests PRIVATE
     placeholder_test.cpp
     test_hal.cpp
+    test_at24cxx_nvstore.cpp
     test_mpu6050.cpp
     test_qmc5883l.cpp
     test_bmp180.cpp
@@ -36,6 +37,7 @@ target_sources(driver_tests PRIVATE
     test_lps22df.cpp
     test_lsm6dso.cpp
     test_calibration.cpp
+    test_calibration_at24cxx.cpp
     test_calibration_fitter.cpp
     test_factory.cpp
     test_quaternion.cpp

@@ -34,9 +34,9 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Calibration validation + fallback defaults on corruption
 
 ## Phase 4: NV Storage Implementation
-- [ ] Implement EEPROM/flash-backed `INvStore` backend
-- [ ] Wire `CalibrationStore` load/save to persistent backend
-- [ ] Add corruption detection via CRC checks
+- [x] Implement EEPROM/flash-backed `INvStore` backend
+- [x] Wire `CalibrationStore` load/save to persistent backend
+- [x] Add corruption detection via CRC checks
 - [ ] Add basic wear-leveling strategy (if flash backend)
 
 ## Phase 5: Platform HAL Backends
@@ -69,3 +69,6 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 3.3 complete: Added first-boot calibration seeding helper (`ensureInitialized`) with persistence tests (2026-03-07)
 - [x] Phase 3.4 complete: Added magnetometer hard-iron/soft-iron fitting helper (`CalibrationFitter`) with tests (2026-03-07)
 - [x] Phase 3.5 complete: Added accelerometer offset/scale and gyroscope bias fitters with tests (2026-03-07)
+- [x] Phase 4.1 complete: Added AT24Cxx EEPROM-backed `INvStore` implementation and build wiring (`AT24CxxNvStore`) with unit tests (2026-03-07)
+- [x] Phase 4.2 complete: Added `CalibrationStore` integration tests against AT24Cxx backend with sampled bus behavior (2026-03-07)
+- [x] Phase 4.3 complete: Verified CRC corruption detection in AT24Cxx-backed calibration persistence tests (2026-03-07)

@@ -67,7 +67,7 @@ Host build (runs on your development machine):
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
-./build/test/driver_tests          # 229 tests
+./build/test/driver_tests          # 422 tests
 ```
 
 Library-only build (no tests, no stub app):
@@ -132,7 +132,7 @@ No per-platform branches — that's a maintenance nightmare. The library compile
 
 ## Tests
 
-229 unit tests (131 driver + 98 middleware), all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.
+422 unit tests, all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.
 
 ```bash
 ./build/test/driver_tests
