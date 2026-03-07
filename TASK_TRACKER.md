@@ -54,6 +54,17 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [ ] Transport integration planning (BLE/WiFi)
 - [ ] OTA update support planning
 
+## Phase 7: Mocap Wearable Node (nRF52840)
+- [x] Freeze node hardware baseline (LSM6DSO + BMM350 + LPS22DF, dual-TWIM, 50 Hz quaternion output)
+- [x] Add platform-agnostic mocap node pipeline in middleware (`MocapNodePipeline`)
+- [x] Add host-side unit tests for pipeline success/fallback behavior
+- [x] Update nRF52 motion-tracker example to dual-bus node architecture
+- [ ] Add BLE transport implementation (NUS/custom GATT) for quaternion frames
+- [ ] Add node calibration command flow (stationary/T-pose triggers)
+- [ ] Add timestamp sync protocol with central node
+- [ ] Add battery and health telemetry frame
+- [ ] Add node-side logging/replay hooks for hard-motion tuning
+
 ## Progress Log
 - [x] Tracker created (2026-03-07)
 - [x] Phase 1.1 complete: ADXL345 middleware-facing interface support via `IAccelSensor` + SensorHub accel-only path (2026-03-07)
@@ -82,3 +93,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 5.5 complete: Added platform example skeleton apps and backend integration docs (`platform/README.md`, design doc, README updates) (2026-03-07)
 - [x] Phase 5.6 complete: Added per-sensor example matrix (`examples/sensors/`) for ESP32/STM32/nRF52 and step-by-step user guide (2026-03-07)
 - [x] Phase 6.1 complete: Added off-target cross-build validation projects and verified successful builds for ESP32 (ESP-IDF), nRF52840, and STM32F407 (nix + arm-none-eabi) (2026-03-07)
+- [x] Phase 7.1 complete: Added `MocapNodePipeline` middleware slice with tests and updated nRF52 motion-tracker example for LSM6DSO + BMM350 + LPS22DF dual-bus architecture (2026-03-07)

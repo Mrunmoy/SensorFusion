@@ -175,6 +175,9 @@ examples/sensors/
 Start here for step-by-step usage instructions:
 [examples/sensors/README.md](examples/sensors/README.md)
 
+Mocap wearable-node architecture (nRF52840 focus):
+[docs/design/mocap-node-architecture.md](docs/design/mocap-node-architecture.md)
+
 ## Tests
 
 428 unit tests, all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.
