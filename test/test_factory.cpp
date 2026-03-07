@@ -36,6 +36,21 @@ public:
     MOCK_METHOD(bool, readVocRaw, (uint16_t&), (override));
 };
 
+class MockAccelSensor : public IAccelSensor {
+public:
+    MOCK_METHOD(bool, readAccel, (AccelData&), (override));
+};
+
+class MockMagSensor : public IMagSensor {
+public:
+    MOCK_METHOD(bool, readMag, (MagData&), (override));
+};
+
+class MockBaroSensor : public IBaroSensor {
+public:
+    MOCK_METHOD(bool, readPressureHPa, (float&), (override));
+};
+
 TEST(FactoryTestRunnerTest, RunAllCollectsResults) {
     StubTest t1("test1", TestStatus::PASS);
     StubTest t2("test2", TestStatus::FAIL);
@@ -391,6 +406,62 @@ TEST(VocBaselineTest, FailsOnReadError) {
     TestResult r = test.run();
     EXPECT_EQ(r.status, TestStatus::FAIL);
     EXPECT_STREQ(r.detail, "VOC read failed");
+}
+
+// --- Per-sensor sanity/range self-tests ---
+
+TEST(AccelSanityRangeTest, PassesForNominalAccelVector) {
+    MockAccelSensor accel;
+    EXPECT_CALL(accel, readAccel(_))
+        .WillOnce([](AccelData& out) {
+            out = {0.02f, -0.01f, 1.00f};
+            return true;
+        });
+
+    sf::AccelSanityRangeTest test("accel sanity", accel, -16.0f, 16.0f, 0.7f, 1.3f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
+}
+
+TEST(AccelSanityRangeTest, FailsWhenNormOutOfRange) {
+    MockAccelSensor accel;
+    EXPECT_CALL(accel, readAccel(_))
+        .WillOnce([](AccelData& out) {
+            out = {0.0f, 0.0f, 2.2f};
+            return true;
+        });
+
+    sf::AccelSanityRangeTest test("accel sanity", accel, -16.0f, 16.0f, 0.7f, 1.3f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "accel norm out of range");
+}
+
+TEST(MagSanityRangeTest, FailsWhenAxisOutOfRange) {
+    MockMagSensor mag;
+    EXPECT_CALL(mag, readMag(_))
+        .WillOnce([](MagData& out) {
+            out = {2500.0f, 10.0f, -5.0f};
+            return true;
+        });
+
+    sf::MagSanityRangeTest test("mag sanity", mag, -2000.0f, 2000.0f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "mag axis out of range");
+}
+
+TEST(BaroSanityRangeTest, PassesForNormalPressure) {
+    MockBaroSensor baro;
+    EXPECT_CALL(baro, readPressureHPa(_))
+        .WillOnce([](float& out) {
+            out = 1005.0f;
+            return true;
+        });
+
+    sf::BaroSanityRangeTest test("baro sanity", baro, 300.0f, 1200.0f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
 }
 
 // --- BQ25101 charge-path verification tests ---

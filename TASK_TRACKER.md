@@ -19,7 +19,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Regenerate code-size dashboard output
 
 ## Phase 2: Factory Test Overhaul
-- [ ] Add per-sensor self-test coverage (ID, sanity, range)
+- [x] Add per-sensor self-test coverage (ID, sanity, range)
 - [x] Add bus verification helpers (probe + raw read/write checks)
 - [x] Add environmental validation (SHT40 plausibility, SGP40 baseline)
 - [x] Add BQ25101 charge-path checks
@@ -63,3 +63,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 2.2 complete: Added humidity/VOC factory validation helpers for SHT40/SGP40 plausibility checks (2026-03-07)
 - [x] Phase 2.3 complete: Added BQ25101 charge-path TS toggle verification helper and tests (2026-03-07)
 - [x] Phase 2.4 complete: Added `formatFactoryReportCsv` output for manufacturing logs with test coverage (2026-03-07)
+- [x] Phase 2.5 complete: Added per-sensor accel/mag/baro sanity-range self-test helpers with host-side coverage (2026-03-07)
