@@ -22,7 +22,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [ ] Add per-sensor self-test coverage (ID, sanity, range)
 - [x] Add bus verification helpers (probe + raw read/write checks)
 - [x] Add environmental validation (SHT40 plausibility, SGP40 baseline)
-- [ ] Add BQ25101 charge-path checks
+- [x] Add BQ25101 charge-path checks
 - [ ] Add structured pass/fail report format for manufacturing
 
 ## Phase 3: Calibration Completion
@@ -61,3 +61,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 1.5 complete: Regenerated size dashboard and verified new objects appear in output (2026-03-07)
 - [x] Phase 2.1 complete: Added `I2CBusRoundTripTest` helper with host-side coverage for write/read/mismatch failures (2026-03-07)
 - [x] Phase 2.2 complete: Added humidity/VOC factory validation helpers for SHT40/SGP40 plausibility checks (2026-03-07)
+- [x] Phase 2.3 complete: Added BQ25101 charge-path TS toggle verification helper and tests (2026-03-07)
