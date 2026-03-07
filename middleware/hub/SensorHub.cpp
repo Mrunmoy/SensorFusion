@@ -10,6 +10,8 @@ void SensorHub::setAccel(IAccelSensor* accel) { accel_ = accel; }
 void SensorHub::setIMU(IAccelGyroSensor* imu) { imu_ = imu; }
 void SensorHub::setMag(IMagSensor* mag) { mag_ = mag; }
 void SensorHub::setBaro(IBaroSensor* baro) { baro_ = baro; }
+void SensorHub::setHumidity(IHumiditySensor* humidity) { humidity_ = humidity; }
+void SensorHub::setVoc(IVocSensor* voc) { voc_ = voc; }
 void SensorHub::setECG(AD8232* ecg) { ecg_ = ecg; }
 
 bool SensorHub::readAccel(AccelData& out) {
@@ -58,6 +60,16 @@ bool SensorHub::readPressure(float& hPa) {
     return baro_->readPressureHPa(hPa);
 }
 
+bool SensorHub::readHumidity(float& humidityPercent) {
+    if (!humidity_) return false;
+    return humidity_->readHumidityPercent(humidityPercent);
+}
+
+bool SensorHub::readVocRaw(uint16_t& vocRaw) {
+    if (!voc_) return false;
+    return voc_->readVocRaw(vocRaw);
+}
+
 bool SensorHub::readECG(ECGSample& out) {
     if (!ecg_) return false;
     return ecg_->sample(out);
@@ -67,6 +79,8 @@ bool SensorHub::hasAccel() const { return accel_ != nullptr || imu_ != nullptr; 
 bool SensorHub::hasIMU()  const { return imu_ != nullptr; }
 bool SensorHub::hasMag()  const { return mag_ != nullptr; }
 bool SensorHub::hasBaro() const { return baro_ != nullptr; }
+bool SensorHub::hasHumidity() const { return humidity_ != nullptr; }
+bool SensorHub::hasVoc() const { return voc_ != nullptr; }
 bool SensorHub::hasECG()  const { return ecg_ != nullptr; }
 
 } // namespace sf

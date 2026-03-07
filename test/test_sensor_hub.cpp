@@ -27,6 +27,16 @@ public:
     MOCK_METHOD(bool, readPressureHPa, (float&), (override));
 };
 
+class MockHumidity : public IHumiditySensor {
+public:
+    MOCK_METHOD(bool, readHumidityPercent, (float&), (override));
+};
+
+class MockVoc : public IVocSensor {
+public:
+    MOCK_METHOD(bool, readVocRaw, (uint16_t&), (override));
+};
+
 // --- Tests ---
 
 TEST(SensorHubTest, NothingRegisteredByDefault) {
@@ -35,6 +45,8 @@ TEST(SensorHubTest, NothingRegisteredByDefault) {
     EXPECT_FALSE(hub.hasIMU());
     EXPECT_FALSE(hub.hasMag());
     EXPECT_FALSE(hub.hasBaro());
+    EXPECT_FALSE(hub.hasHumidity());
+    EXPECT_FALSE(hub.hasVoc());
     EXPECT_FALSE(hub.hasECG());
 }
 
@@ -98,6 +110,18 @@ TEST(SensorHubTest, ReadPressureWithNoBaroReturnsFalse) {
     EXPECT_FALSE(hub.readPressure(p));
 }
 
+TEST(SensorHubTest, ReadHumidityWithNoSensorReturnsFalse) {
+    SensorHub hub;
+    float humidity = 0.0f;
+    EXPECT_FALSE(hub.readHumidity(humidity));
+}
+
+TEST(SensorHubTest, ReadVocWithNoSensorReturnsFalse) {
+    SensorHub hub;
+    uint16_t vocRaw = 0;
+    EXPECT_FALSE(hub.readVocRaw(vocRaw));
+}
+
 TEST(SensorHubTest, ReadECGWithNoECGReturnsFalse) {
     SensorHub hub;
     ECGSample s;
@@ -124,6 +148,20 @@ TEST(SensorHubTest, RegisterBaro) {
     MockBaro baro;
     hub.setBaro(&baro);
     EXPECT_TRUE(hub.hasBaro());
+}
+
+TEST(SensorHubTest, RegisterHumiditySensor) {
+    SensorHub hub;
+    MockHumidity humidity;
+    hub.setHumidity(&humidity);
+    EXPECT_TRUE(hub.hasHumidity());
+}
+
+TEST(SensorHubTest, RegisterVocSensor) {
+    SensorHub hub;
+    MockVoc voc;
+    hub.setVoc(&voc);
+    EXPECT_TRUE(hub.hasVoc());
 }
 
 TEST(SensorHubTest, ReadAccelDelegates) {
@@ -192,6 +230,38 @@ TEST(SensorHubTest, ReadPressureDelegates) {
     EXPECT_FLOAT_EQ(p, 1013.25f);
 }
 
+TEST(SensorHubTest, ReadHumidityDelegates) {
+    SensorHub hub;
+    MockHumidity humidity;
+    hub.setHumidity(&humidity);
+
+    EXPECT_CALL(humidity, readHumidityPercent(::testing::_))
+        .WillOnce([](float& out) {
+            out = 55.5f;
+            return true;
+        });
+
+    float out = 0.0f;
+    EXPECT_TRUE(hub.readHumidity(out));
+    EXPECT_FLOAT_EQ(out, 55.5f);
+}
+
+TEST(SensorHubTest, ReadVocDelegates) {
+    SensorHub hub;
+    MockVoc voc;
+    hub.setVoc(&voc);
+
+    EXPECT_CALL(voc, readVocRaw(::testing::_))
+        .WillOnce([](uint16_t& out) {
+            out = 1234;
+            return true;
+        });
+
+    uint16_t out = 0;
+    EXPECT_TRUE(hub.readVocRaw(out));
+    EXPECT_EQ(out, 1234);
+}
+
 TEST(SensorHubTest, IMUReadFailurePropagates) {
     SensorHub hub;
     MockAccelGyro imu;
@@ -210,6 +280,26 @@ TEST(SensorHubTest, UnregisterSensor) {
 
     hub.setIMU(nullptr);
     EXPECT_FALSE(hub.hasIMU());
+}
+
+TEST(SensorHubTest, UnregisterHumiditySensor) {
+    SensorHub hub;
+    MockHumidity humidity;
+    hub.setHumidity(&humidity);
+    EXPECT_TRUE(hub.hasHumidity());
+
+    hub.setHumidity(nullptr);
+    EXPECT_FALSE(hub.hasHumidity());
+}
+
+TEST(SensorHubTest, UnregisterVocSensor) {
+    SensorHub hub;
+    MockVoc voc;
+    hub.setVoc(&voc);
+    EXPECT_TRUE(hub.hasVoc());
+
+    hub.setVoc(nullptr);
+    EXPECT_FALSE(hub.hasVoc());
 }
 
 TEST(SensorHubTest, UnregisterAccelOnlySensor) {
@@ -232,10 +322,12 @@ TEST(SensorHubTest, MixedSensorConfiguration) {
     EXPECT_TRUE(hub.hasIMU());
     EXPECT_FALSE(hub.hasMag());
     EXPECT_TRUE(hub.hasBaro());
+    EXPECT_FALSE(hub.hasHumidity());
+    EXPECT_FALSE(hub.hasVoc());
     EXPECT_FALSE(hub.hasECG());
 }
 
 TEST(SensorHubSizeTest, SmallFootprint) {
-    // 6 pointers = 48 bytes on 64-bit, 24 on 32-bit
-    EXPECT_LE(sizeof(SensorHub), 6 * sizeof(void*));
+    // 8 pointers = 64 bytes on 64-bit, 32 on 32-bit
+    EXPECT_LE(sizeof(SensorHub), 8 * sizeof(void*));
 }

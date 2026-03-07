@@ -172,6 +172,7 @@ imu.readAccel(accel);
 #include "MPU6050.hpp"
 #include "LIS3MDL.hpp"
 #include "SHT40.hpp"
+#include "SGP40.hpp"
 #include "BQ25101.hpp"
 #include "SensorHub.hpp"
 #include "MahonyAHRS.hpp"
@@ -187,17 +188,21 @@ extern "C" void app_main() {
     sf::MPU6050  imu(i2c, delay);
     sf::LIS3MDL  mag(i2c, delay);
     sf::SHT40    env(i2c, delay);
+    sf::SGP40    voc(i2c, delay);
     sf::BQ25101  charger(chgPin, tsPin);
 
     imu.init();
     mag.init();
     env.init();
+    voc.init();
 
     // Middleware
     sf::MahonyAHRS ahrs;
     sf::SensorHub  hub;
     hub.setIMU(&imu);
     hub.setMag(&mag);
+    hub.setHumidity(&env);
+    hub.setVoc(&voc);
 
     while (true) {
         sf::AccelData a; sf::GyroData g; sf::MagData m;
@@ -205,8 +210,10 @@ extern "C" void app_main() {
             ahrs.update(a, g, m, 0.01f);
         }
 
-        float temp, hum;
-        env.measure(temp, hum);
+        float humidity;
+        uint16_t vocRaw;
+        hub.readHumidity(humidity);
+        hub.readVocRaw(vocRaw);
 
         if (charger.isCharging()) { /* show LED */ }
 
