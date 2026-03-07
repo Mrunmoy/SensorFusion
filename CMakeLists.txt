@@ -6,9 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(SENSORFUSION_BUILD_TESTS "Build unit tests" ON)
 option(SENSORFUSION_BUILD_APP "Build stub application" OFF)
+set(SENSORFUSION_PLATFORM "none" CACHE STRING "Optional platform backend: none, esp32, stm32, nrf52")
+set_property(CACHE SENSORFUSION_PLATFORM PROPERTY STRINGS none esp32 stm32 nrf52)
 
 add_subdirectory(drivers)
 add_subdirectory(middleware)
+
+if(NOT SENSORFUSION_PLATFORM STREQUAL "none")
+    add_subdirectory(platform)
+endif()
 
 if(SENSORFUSION_BUILD_TESTS)
     add_subdirectory(test)
