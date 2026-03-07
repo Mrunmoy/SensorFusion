@@ -14,7 +14,7 @@ uint32_t CalibrationStore::slotAddress(SensorId id) const {
     return baseAddr_ + static_cast<uint32_t>(static_cast<uint8_t>(id)) * SLOT_SIZE;
 }
 
-static constexpr uint8_t MAX_SENSOR_ID = 2; // MAG = 2 is the highest
+static constexpr uint8_t MAX_SENSOR_ID = 3; // BARO = 3 is the highest
 
 bool CalibrationStore::isCalibrationSane(const CalibrationData& data) {
     auto finite = [](float v) { return std::isfinite(v); };

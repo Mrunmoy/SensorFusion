@@ -10,6 +10,7 @@ enum class SensorId : uint8_t {
     ACCEL = 0,
     GYRO  = 1,
     MAG   = 2,
+    BARO  = 3,
 };
 
 struct CalibrationData {
