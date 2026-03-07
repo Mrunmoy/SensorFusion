@@ -37,6 +37,7 @@ This document defines the body-worn mocap sensor node only. Central receiver and
   - `timestampUs` (node local clock for now)
   - quaternion `(w, x, y, z)`
 - Pending additions: battery %, link quality, calibration state.
+- BLE framing/MTU details: `docs/design/mocap-ble-contract.md`
 
 ## Immediate Next Engineering Tasks
 

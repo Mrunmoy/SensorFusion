@@ -181,6 +181,7 @@ Mocap wearable-node architecture (nRF52840 focus):
 Mocap body map and power profiles:
 [docs/design/mocap-node-map.md](docs/design/mocap-node-map.md)
 [docs/design/mocap-power-profiles.md](docs/design/mocap-power-profiles.md)
+[docs/design/mocap-ble-contract.md](docs/design/mocap-ble-contract.md)
 
 ## Tests
 

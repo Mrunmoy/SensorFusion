@@ -2,6 +2,7 @@
 #include "FrameCodec.hpp"
 #include "LPS22DF.hpp"
 #include "LSM6DSO.hpp"
+#include "MocapBleTransport.hpp"
 #include "MocapNodePipeline.hpp"
 #include "NrfDelay.hpp"
 #include "NrfTwimBus.hpp"
@@ -19,11 +20,16 @@ enum class PowerMode {
 
 constexpr PowerMode kPowerMode = PowerMode::PERFORMANCE;
 
-bool bleSend(const uint8_t* data, size_t len) {
+extern "C" bool __attribute__((weak)) sf_mocap_ble_notify(const uint8_t* data, size_t len) {
     (void)data;
     (void)len;
-    // Integrate with your BLE transport (NUS/custom GATT) here.
-    return true;
+    // Provide this symbol from your board BLE module.
+    return false;
+}
+
+bool bleNotifyAdapter(const uint8_t* data, size_t len, void* context) {
+    (void)context;
+    return sf_mocap_ble_notify(data, len);
 }
 } // namespace
 
@@ -66,8 +72,11 @@ int main() {
 
     nodeCfg.preferMag = true;
     sf::MocapNodePipeline pipeline(imu, &mag, &baro, nodeCfg);
+    sf::MocapBleTransport::Config bleCfg{};
+    bleCfg.attMtu = 185;
+    bleCfg.maxRetries = 2;
+    sf::MocapBleTransport bleTx(&bleNotifyAdapter, nullptr, bleCfg);
 
-    uint8_t frame[sf::FrameCodec::MAX_FRAME_SIZE] = {};
     uint64_t nextTickUs = delay.getTimestampUs();
     while (true) {
         const uint64_t nowUs = delay.getTimestampUs();
@@ -80,8 +89,6 @@ int main() {
         sf::MocapNodeSample sample{};
         if (!pipeline.step(sample)) continue;
 
-        const size_t frameLen = sf::FrameCodec::encodeQuaternion(
-            kNodeId, nowUs, sample.orientation, frame, sizeof(frame));
-        if (frameLen > 0) bleSend(frame, frameLen);
+        (void)bleTx.sendQuaternion(kNodeId, nowUs, sample.orientation);
     }
 }

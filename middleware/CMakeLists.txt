@@ -20,6 +20,7 @@ target_sources(sensorfusion_middleware PRIVATE
     ahrs/MahonyAHRS.cpp
     hub/SensorHub.cpp
     codec/FrameCodec.cpp
+    codec/MocapBleTransport.cpp
     altitude/AltitudeEstimator.cpp
     ecg/HeartRateDetector.cpp
     motion/LinearAccelExtractor.cpp
