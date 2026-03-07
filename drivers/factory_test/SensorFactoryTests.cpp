@@ -108,4 +108,31 @@ TestResult VocBaselineTest::run() {
     return {name_, TestStatus::PASS, nullptr};
 }
 
+BQ25101ChargePathTest::BQ25101ChargePathTest(const char* testName, BQ25101& charger)
+    : name_(testName), charger_(charger)
+{}
+
+TestResult BQ25101ChargePathTest::run() {
+    if (!charger_.setChargeEnable(false)) {
+        return {name_, TestStatus::FAIL, "failed to inhibit charging"};
+    }
+    ChargeStatus inhibitedStatus = charger_.status();
+    if (inhibitedStatus == ChargeStatus::UNKNOWN) {
+        return {name_, TestStatus::FAIL, "CHG status read failed"};
+    }
+
+    if (!charger_.setChargeEnable(true)) {
+        return {name_, TestStatus::FAIL, "failed to enable charging"};
+    }
+    ChargeStatus enabledStatus = charger_.status();
+    if (enabledStatus == ChargeStatus::UNKNOWN) {
+        return {name_, TestStatus::FAIL, "CHG status read failed"};
+    }
+
+    if (inhibitedStatus == enabledStatus) {
+        return {name_, TestStatus::FAIL, "CHG did not respond to TS toggle"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
 } // namespace sf

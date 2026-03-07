@@ -4,6 +4,7 @@
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
 #include "SensorInterface.hpp"
+#include "BQ25101.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -91,6 +92,18 @@ private:
     IVocSensor& sensor_;
     uint16_t minRaw_;
     uint16_t maxRaw_;
+};
+
+class BQ25101ChargePathTest : public IFactoryTest {
+public:
+    BQ25101ChargePathTest(const char* testName, BQ25101& charger);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    BQ25101& charger_;
 };
 
 } // namespace sf

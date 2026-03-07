@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "MockI2CBus.hpp"
+#include "MockGpioInput.hpp"
+#include "MockGpioOutput.hpp"
+#include "BQ25101.hpp"
 #include "FactoryTest.hpp"
 #include "SensorFactoryTests.hpp"
 
@@ -8,6 +11,7 @@ using namespace sf;
 using namespace sf::test;
 using ::testing::_;
 using ::testing::Return;
+using ::testing::InSequence;
 
 // --- FactoryTestRunner tests ---
 
@@ -362,4 +366,74 @@ TEST(VocBaselineTest, FailsOnReadError) {
     TestResult r = test.run();
     EXPECT_EQ(r.status, TestStatus::FAIL);
     EXPECT_STREQ(r.detail, "VOC read failed");
+}
+
+// --- BQ25101 charge-path verification tests ---
+
+TEST(BQ25101ChargePathTest, PassesWhenChargeStateChangesAfterTsToggle) {
+    MockGpioInput chgPin;
+    MockGpioOutput tsPin;
+    BQ25101 charger(chgPin, tsPin);
+
+    {
+        InSequence seq;
+        EXPECT_CALL(tsPin, write(false)).WillOnce(Return(true)); // inhibit charge
+        EXPECT_CALL(chgPin, read(_))
+            .WillOnce([](bool& level) { level = true; return true; }); // NOT_CHARGING
+        EXPECT_CALL(tsPin, write(true)).WillOnce(Return(true));  // enable charge
+        EXPECT_CALL(chgPin, read(_))
+            .WillOnce([](bool& level) { level = false; return true; }); // CHARGING
+    }
+
+    sf::BQ25101ChargePathTest test("BQ25101 charge path", charger);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
+}
+
+TEST(BQ25101ChargePathTest, FailsWhenTsWriteFails) {
+    MockGpioInput chgPin;
+    MockGpioOutput tsPin;
+    BQ25101 charger(chgPin, tsPin);
+
+    EXPECT_CALL(tsPin, write(false)).WillOnce(Return(false));
+
+    sf::BQ25101ChargePathTest test("BQ25101 charge path", charger);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "failed to inhibit charging");
+}
+
+TEST(BQ25101ChargePathTest, FailsWhenStatusReadFails) {
+    MockGpioInput chgPin;
+    MockGpioOutput tsPin;
+    BQ25101 charger(chgPin, tsPin);
+
+    EXPECT_CALL(tsPin, write(false)).WillOnce(Return(true));
+    EXPECT_CALL(chgPin, read(_)).WillOnce(Return(false)); // UNKNOWN
+
+    sf::BQ25101ChargePathTest test("BQ25101 charge path", charger);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "CHG status read failed");
+}
+
+TEST(BQ25101ChargePathTest, FailsWhenChargeStateDoesNotChange) {
+    MockGpioInput chgPin;
+    MockGpioOutput tsPin;
+    BQ25101 charger(chgPin, tsPin);
+
+    {
+        InSequence seq;
+        EXPECT_CALL(tsPin, write(false)).WillOnce(Return(true));
+        EXPECT_CALL(chgPin, read(_))
+            .WillOnce([](bool& level) { level = true; return true; }); // NOT_CHARGING
+        EXPECT_CALL(tsPin, write(true)).WillOnce(Return(true));
+        EXPECT_CALL(chgPin, read(_))
+            .WillOnce([](bool& level) { level = true; return true; }); // still NOT_CHARGING
+    }
+
+    sf::BQ25101ChargePathTest test("BQ25101 charge path", charger);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "CHG did not respond to TS toggle");
 }
