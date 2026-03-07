@@ -41,7 +41,7 @@ This document defines the body-worn mocap sensor node only. Central receiver and
 
 ## Immediate Next Engineering Tasks
 
-- Implement BLE sender in `examples/nrf52-motion-tracker/main.cpp` (`bleSend` placeholder).
+- Implement board BLE sender that defines `sf_mocap_ble_notify(...)` for the transport hook.
 - Add calibration and stationary-detection commands.
 - Add timestamp synchronization with the central node.
 

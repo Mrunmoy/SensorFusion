@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build Validation Matrix</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Build Validation Matrix</h1>
+      <p class="muted">Off-target cross-build smoke tests for platform confidence.</p>
+    </header>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="mocap-system.html">Mocap System</a>
+      <a href="mocap-ble.html">Mocap BLE</a>
+      <a href="library-integration.html">Library Integration</a>
+      <a href="build-validation.html">Build Validation</a>
+    </nav>
+
+    <h2>Validation Topology</h2>
+    <div class="mermaid">
+flowchart LR
+  Repo[SensorFusion Repo] --> Val[/sf-validation/]
+
+  Val --> Esp[esp32-sensor-node]
+  Val --> Nrf[nrf52840-sensor-node]
+  Val --> Stm[stm32f407zgt6-sensor-node]
+
+  Esp --> IdF[ESP-IDF v5.5]
+  Nrf --> Nix1[nix + gcc-arm-embedded]
+  Stm --> Nix2[nix + gcc-arm-embedded]
+    </div>
+
+    <h2>Build Sequence</h2>
+    <div class="mermaid">
+sequenceDiagram
+  participant Dev as Developer/CI
+  participant Esp as ESP32 Project
+  participant Nrf as nRF52 Project
+  participant Stm as STM32 Project
+
+  Dev->>Esp: source export.sh; idf.py build
+  Esp-->>Dev: .bin / .elf build success
+
+  Dev->>Nrf: nix develop; cmake + ninja
+  Nrf-->>Dev: arm-none-eabi artifact
+
+  Dev->>Stm: nix develop; cmake + ninja
+  Stm-->>Dev: arm-none-eabi artifact
+    </div>
+
+    <h2>Status Snapshot</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>ESP32</h3>
+        <p>Toolchain: ESP-IDF 5.5</p>
+        <p>Result: pass</p>
+      </div>
+      <div class="card">
+        <h3>nRF52840</h3>
+        <p>Toolchain: nix + arm-none-eabi</p>
+        <p>Result: pass</p>
+      </div>
+      <div class="card">
+        <h3>STM32F407</h3>
+        <p>Toolchain: nix + arm-none-eabi</p>
+        <p>Result: pass</p>
+      </div>
+    </div>
+
+    <h2>Validation Scope</h2>
+    <p>These are compile/link confidence checks for user integration patterns. Comms and hardware timing behavior still require on-target testing.</p>
+  </div>
+</body>
+</html>

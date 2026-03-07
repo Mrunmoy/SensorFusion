@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mocap BLE Contract</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Mocap BLE Transport Contract</h1>
+      <p class="muted">Quaternion frame transport, MTU rules, retry logic, and compile-time policy design.</p>
+    </header>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="mocap-system.html">Mocap System</a>
+      <a href="mocap-ble.html">Mocap BLE</a>
+      <a href="library-integration.html">Library Integration</a>
+      <a href="build-validation.html">Build Validation</a>
+    </nav>
+
+    <h2>Frame Contract</h2>
+    <p>Quaternion frame is fixed at <code>30 bytes</code>.</p>
+    <pre><code>Sync(2) + NodeId(1) + Type(1) + TimestampUs(8) + Quaternion(16) + CRC16(2)</code></pre>
+
+    <h2>MTU Constraints</h2>
+    <div class="mermaid">
+flowchart LR
+  Frame[Quaternion Frame: 30B] --> Att[ATT overhead: 3B]
+  Att --> MinMtu[Required ATT MTU: 33B]
+  MinMtu --> Rec[Recommended ATT MTU: 185B]
+    </div>
+
+    <h2>Class Diagram</h2>
+    <div class="mermaid">
+classDiagram
+  class FrameCodec {
+    +encodeQuaternion(...)
+  }
+
+  class NotifierPolicy {
+    <<concept>>
+    +valid() bool
+    +operator()(data,len) bool
+  }
+
+  class MocapBleTransportT~Notifier~ {
+    +canSendQuaternion() bool
+    +sendQuaternion(nodeId, ts, q) bool
+    +sentCount() uint32
+    +retryCount() uint32
+    +droppedCount() uint32
+  }
+
+  class MocapBleTransport {
+    +canSendQuaternion() bool
+    +sendQuaternion(nodeId, ts, q) bool
+  }
+
+  MocapBleTransportT --> FrameCodec
+  MocapBleTransport --> MocapBleTransportT
+  NotifierPolicy <.. MocapBleTransportT
+    </div>
+
+    <h2>Send Sequence</h2>
+    <div class="mermaid">
+sequenceDiagram
+  participant Loop as Main Loop
+  participant Tx as MocapBleTransport
+  participant Codec as FrameCodec
+  participant Ble as sf_mocap_ble_notify
+
+  Loop->>Tx: sendQuaternion(nodeId, ts, q)
+  Tx->>Tx: check callback + MTU
+  alt invalid callback or MTU too small
+    Tx-->>Loop: false (drop++)
+  else valid
+    Tx->>Codec: encodeQuaternion(...)
+    loop attempts 0..maxRetries
+      Tx->>Ble: notify(frame)
+      alt notify success
+        Tx-->>Loop: true (sent++, retry+=attempt)
+      else notify failed
+        Tx->>Tx: retry
+      end
+    end
+    Tx-->>Loop: false (drop++)
+  end
+    </div>
+
+    <h2>State Diagram</h2>
+    <div class="mermaid">
+stateDiagram-v2
+  [*] --> Validate
+  Validate --> Drop: invalid notifier/MTU
+  Validate --> Encode: valid
+  Encode --> Drop: encode failed
+  Encode --> Send
+  Send --> Done: notify success
+  Send --> Retry: notify fail and attempts left
+  Retry --> Send
+  Send --> Drop: retries exhausted
+  Drop --> [*]
+  Done --> [*]
+    </div>
+
+    <h2>nRF Integration Hook</h2>
+    <pre><code>extern "C" bool sf_mocap_ble_notify(const uint8_t* data, size_t len);</code></pre>
+    <p>Implement this symbol in board BLE code (NUS/custom GATT service) to activate transport.</p>
+  </div>
+</body>
+</html>

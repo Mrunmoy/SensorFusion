@@ -183,6 +183,9 @@ Mocap body map and power profiles:
 [docs/design/mocap-power-profiles.md](docs/design/mocap-power-profiles.md)
 [docs/design/mocap-ble-contract.md](docs/design/mocap-ble-contract.md)
 
+Interactive HTML design portal (Mermaid diagrams):
+[docs/design/html/index.html](docs/design/html/index.html)
+
 ## Tests
 
 428 unit tests, all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Library Integration Design</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Library Integration & Distribution</h1>
+      <p class="muted">How SensorFusion modules, backends, and examples are composed.</p>
+    </header>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="mocap-system.html">Mocap System</a>
+      <a href="mocap-ble.html">Mocap BLE</a>
+      <a href="library-integration.html">Library Integration</a>
+      <a href="build-validation.html">Build Validation</a>
+    </nav>
+
+    <h2>Repository Module Graph</h2>
+    <div class="mermaid">
+flowchart TB
+  App[User App] --> Mid[sensorfusion_middleware]
+  Mid --> Drv[sensorfusion_drivers]
+
+  App --> Pesp[sensorfusion_platform_esp32]
+  App --> Pnrf[sensorfusion_platform_nrf52]
+  App --> Pstm[sensorfusion_platform_stm32]
+
+  Pesp --> Drv
+  Pnrf --> Drv
+  Pstm --> Drv
+
+  Test[driver_tests] --> Mid
+  Test --> GTest[gtest/gmock]
+    </div>
+
+    <h2>CMake Selection Logic</h2>
+    <div class="mermaid">
+flowchart TD
+  Start[Configure] --> Core[Build drivers + middleware]
+  Core --> Opt{SENSORFUSION_PLATFORM != none?}
+  Opt -->|yes| Plat[add_subdirectory(platform)]
+  Opt -->|no| Skip[No platform backend]
+  Plat --> Tst{SENSORFUSION_BUILD_TESTS?}
+  Skip --> Tst
+  Tst -->|yes| Tests[Build driver_tests]
+  Tst -->|no| End[Done]
+  Tests --> End
+    </div>
+
+    <h2>Class Boundary Map</h2>
+    <div class="mermaid">
+classDiagram
+  class II2CBus { <<interface>> }
+  class ISPIBus { <<interface>> }
+  class IAdcChannel { <<interface>> }
+  class IDelayProvider { <<interface>> }
+
+  class LSM6DSO
+  class BMM350
+  class LPS22DF
+  class SensorHub
+  class MahonyAHRS
+
+  class EspI2CBus
+  class NrfTwimBus
+  class StmI2CBus
+
+  II2CBus <|.. EspI2CBus
+  II2CBus <|.. NrfTwimBus
+  II2CBus <|.. StmI2CBus
+
+  II2CBus <.. LSM6DSO
+  II2CBus <.. BMM350
+  II2CBus <.. LPS22DF
+  IDelayProvider <.. LSM6DSO
+  IDelayProvider <.. BMM350
+  IDelayProvider <.. LPS22DF
+
+  LSM6DSO --> SensorHub
+  BMM350 --> SensorHub
+  LPS22DF --> SensorHub
+  SensorHub --> MahonyAHRS
+    </div>
+
+    <h2>Integration Paths</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Submodule</h3>
+        <p>Best for embedded reproducibility and controlled updates.</p>
+      </div>
+      <div class="card">
+        <h3>FetchContent</h3>
+        <p>Good for simple CMake consumption across desktop + embedded CI.</p>
+      </div>
+      <div class="card">
+        <h3>Custom HAL</h3>
+        <p>Use only if platform backend is unavailable or heavily customized.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mocap System Design</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Mocap Wearable Node Design</h1>
+      <p class="muted">nRF52840 + LSM6DSO + BMM350 + LPS22DF focus.</p>
+    </header>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="mocap-system.html">Mocap System</a>
+      <a href="mocap-ble.html">Mocap BLE</a>
+      <a href="library-integration.html">Library Integration</a>
+      <a href="build-validation.html">Build Validation</a>
+    </nav>
+
+    <h2>Node Placement Strategy</h2>
+    <div class="mermaid">
+graph TD
+  A[11-node MVP] --> A1[Pelvis]
+  A --> A2[Chest]
+  A --> A3[Head]
+  A --> A4[L/R Upper Arm]
+  A --> A5[L/R Forearm]
+  A --> A6[L/R Thigh]
+  A --> A7[L/R Shin]
+
+  B[15-node Baseline] --> B1[11-node MVP]
+  B --> B2[L/R Foot]
+  B --> B3[L/R Hand]
+
+  C[17-19 High Fidelity] --> C1[15-node Baseline]
+  C --> C2[L/R Clavicle]
+  C --> C3[Spine Split]
+    </div>
+
+    <h2>Wearable Firmware Data Flow</h2>
+    <div class="mermaid">
+flowchart LR
+  IMU[LSM6DSO on TWIM0] --> Pipe[MocapNodePipeline::step]
+  MAG[BMM350 on TWIM1] --> Pipe
+  BARO[LPS22DF on TWIM1] --> Pipe
+  Pipe --> AHRS[MahonyAHRS update/update6DOF]
+  AHRS --> Q[Quaternion]
+  Q --> Codec[FrameCodec::encodeQuaternion]
+  Codec --> BLE[MocapBleTransport]
+    </div>
+
+    <h2>Class Diagram</h2>
+    <div class="mermaid">
+classDiagram
+  class IAccelGyroSensor {
+    <<interface>>
+    +readAccel(out)
+    +readGyro(out)
+  }
+  class IMagSensor {
+    <<interface>>
+    +readMag(out)
+  }
+  class IBaroSensor {
+    <<interface>>
+    +readPressureHPa(out)
+  }
+  class MahonyAHRS {
+    +update(accel, gyro, mag, dt)
+    +update6DOF(accel, gyro, dt)
+    +getQuaternion()
+  }
+  class MocapNodePipeline {
+    +step(out sample) bool
+  }
+  class MocapNodeSample {
+    +orientation
+    +accel
+    +gyro
+    +mag
+    +pressureHPa
+    +hasMag
+    +hasPressure
+  }
+
+  IAccelGyroSensor <.. MocapNodePipeline
+  IMagSensor <.. MocapNodePipeline
+  IBaroSensor <.. MocapNodePipeline
+  MocapNodePipeline --> MahonyAHRS
+  MocapNodePipeline --> MocapNodeSample
+    </div>
+
+    <h2>50 Hz Loop Sequence</h2>
+    <div class="mermaid">
+sequenceDiagram
+  participant Loop as Main Loop
+  participant Pipe as MocapNodePipeline
+  participant Imu as LSM6DSO
+  participant Mag as BMM350
+  participant Baro as LPS22DF
+  participant Ahrs as MahonyAHRS
+
+  Loop->>Pipe: step(sample)
+  Pipe->>Imu: readAccel/readGyro
+  Pipe->>Mag: readMag (best effort)
+  Pipe->>Baro: readPressureHPa (best effort)
+  alt mag sample available
+    Pipe->>Ahrs: update(9-DOF)
+  else mag missing
+    Pipe->>Ahrs: update6DOF
+  end
+  Ahrs-->>Pipe: quaternion
+  Pipe-->>Loop: sample + flags
+    </div>
+
+    <h2>Operating Modes</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Performance</h3>
+        <p><code>50 Hz</code> output, LSM6DSO <code>208 Hz</code>, BMM350 <code>100 Hz</code>, LPS22DF <code>200 Hz</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Battery</h3>
+        <p><code>40 Hz</code> output, LSM6DSO <code>104 Hz</code>, BMM350 <code>50 Hz</code>, LPS22DF <code>25 Hz</code>.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
