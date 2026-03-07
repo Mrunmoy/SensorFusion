@@ -36,7 +36,7 @@ Current `CalibrationStore` is minimal. Needs to be completed for all sensors req
 - [ ] **Magnetometer calibration** — hard-iron/soft-iron for QMC5883L, BMM350, LIS3MDL
 - [ ] **Accelerometer calibration** — offset + scale for MPU6050, LSM6DSO, ADXL345
 - [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
-- [ ] **Barometer calibration** — sea-level pressure reference for BMP180, LPS22DF
+- [x] **Barometer calibration** — added BARO calibration slot support for persisted sea-level pressure reference
 - [ ] **Auto-calibrate on first boot** — if no stored calibration exists, run calibration routine and persist
 - [x] **Calibration validation** — sanity checks added for saved/loaded params, with `loadOrDefault` fallback support
 

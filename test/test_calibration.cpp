@@ -57,6 +57,19 @@ TEST_F(CalibrationStoreTest, DifferentSensorsIndependent) {
     EXPECT_FLOAT_EQ(loadedGyro.offsetX, 2.0f);
 }
 
+TEST_F(CalibrationStoreTest, BaroSlotRoundTripForSeaLevelReference) {
+    CalibrationStore store(nv);
+
+    CalibrationData baroCal;
+    baroCal.offsetX = 1013.25f; // sea-level pressure reference
+    baroCal.scaleX  = 1.0f;
+    EXPECT_TRUE(store.save(SensorId::BARO, baroCal));
+
+    CalibrationData loaded;
+    EXPECT_TRUE(store.load(SensorId::BARO, loaded));
+    EXPECT_FLOAT_EQ(loaded.offsetX, 1013.25f);
+}
+
 TEST_F(CalibrationStoreTest, LoadFromEmptyStoreFails) {
     CalibrationStore store(nv);
     CalibrationData data;
