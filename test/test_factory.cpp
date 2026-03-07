@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <cstring>
 #include "MockI2CBus.hpp"
 #include "MockGpioInput.hpp"
 #include "MockGpioOutput.hpp"
@@ -96,6 +97,30 @@ TEST(FactoryTestRunnerTest, MaxTestsEnforced) {
         EXPECT_TRUE(runner.addTest(&tests[i]));
     }
     EXPECT_FALSE(runner.addTest(&tests[FactoryTestRunner::MAX_TESTS]));
+}
+
+TEST(FactoryReportTest, CsvIncludesPassFailPerSensor) {
+    TestResult results[3] = {
+        {"LSM6DSO", TestStatus::PASS, nullptr},
+        {"SHT40", TestStatus::FAIL, "humidity out of range"},
+        {"SGP40", TestStatus::SKIPPED, "not present"},
+    };
+    char report[256] = {};
+    size_t written = sf::formatFactoryReportCsv(results, 3, report, sizeof(report));
+
+    EXPECT_GT(written, 0u);
+    EXPECT_NE(std::strstr(report, "name,status,detail"), nullptr);
+    EXPECT_NE(std::strstr(report, "LSM6DSO,PASS,"), nullptr);
+    EXPECT_NE(std::strstr(report, "SHT40,FAIL,humidity out of range"), nullptr);
+    EXPECT_NE(std::strstr(report, "SGP40,SKIPPED,not present"), nullptr);
+}
+
+TEST(FactoryReportTest, CsvReturnsZeroWhenBufferTooSmall) {
+    TestResult results[1] = {
+        {"LSM6DSO", TestStatus::PASS, nullptr},
+    };
+    char report[8] = {};
+    EXPECT_EQ(sf::formatFactoryReportCsv(results, 1, report, sizeof(report)), 0u);
 }
 
 // --- I2CSensorProbeTest tests ---
