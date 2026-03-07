@@ -11,7 +11,7 @@ struct Version {
 };
 
 // Driver library version
-constexpr Version DRIVER_VERSION = {1, 0, 0};
+constexpr Version DRIVER_VERSION = {1, 1, 0};
 
 // Middleware library version
 constexpr Version MIDDLEWARE_VERSION = {1, 0, 0};
