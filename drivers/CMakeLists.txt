@@ -43,4 +43,5 @@ target_sources(sensorfusion_drivers PRIVATE
     factory_test/FactoryTest.cpp
     factory_test/SensorFactoryTests.cpp
     nvstore/AT24CxxNvStore.cpp
+    nvstore/WearLevelingNvStore.cpp
 )
