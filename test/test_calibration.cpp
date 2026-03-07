@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <limits>
 #include "MockNvStore.hpp"
 #include "CalibrationStore.hpp"
 
@@ -142,4 +143,54 @@ TEST_F(CalibrationStoreTest, NvWriteFailure) {
     CalibrationStore store(failNv);
     CalibrationData cal;
     EXPECT_FALSE(store.save(SensorId::ACCEL, cal));
+}
+
+TEST_F(CalibrationStoreTest, InvalidScaleRejectedOnSave) {
+    CalibrationStore store(nv);
+
+    CalibrationData invalid;
+    invalid.scaleX = 0.0f; // invalid
+    EXPECT_FALSE(store.save(SensorId::ACCEL, invalid));
+}
+
+TEST_F(CalibrationStoreTest, NonFiniteValueRejectedOnSave) {
+    CalibrationStore store(nv);
+
+    CalibrationData invalid;
+    invalid.offsetY = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_FALSE(store.save(SensorId::GYRO, invalid));
+}
+
+TEST_F(CalibrationStoreTest, LoadOrDefaultUsesStoredCalibrationWhenValid) {
+    CalibrationStore store(nv);
+    CalibrationData cal;
+    cal.offsetX = 0.25f;
+    EXPECT_TRUE(store.save(SensorId::MAG, cal));
+
+    CalibrationData out;
+    CalibrationData defaults;
+    defaults.offsetX = -1.0f;
+
+    EXPECT_TRUE(store.loadOrDefault(SensorId::MAG, out, defaults));
+    EXPECT_FLOAT_EQ(out.offsetX, 0.25f);
+}
+
+TEST_F(CalibrationStoreTest, LoadOrDefaultFallsBackWhenCorrupt) {
+    CalibrationStore store(nv);
+    CalibrationData cal;
+    cal.offsetX = 0.4f;
+    EXPECT_TRUE(store.save(SensorId::ACCEL, cal));
+
+    // Corrupt saved bytes to force load failure.
+    uint8_t corrupt = 0x00;
+    nv.write(6, &corrupt, 1);
+
+    CalibrationData out;
+    CalibrationData defaults;
+    defaults.offsetX = -0.75f;
+    defaults.scaleX = 1.2f;
+
+    EXPECT_FALSE(store.loadOrDefault(SensorId::ACCEL, out, defaults));
+    EXPECT_FLOAT_EQ(out.offsetX, defaults.offsetX);
+    EXPECT_FLOAT_EQ(out.scaleX, defaults.scaleX);
 }

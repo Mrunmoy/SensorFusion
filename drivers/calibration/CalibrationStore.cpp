@@ -1,4 +1,5 @@
 #include "CalibrationStore.hpp"
+#include <cmath>
 #include <cstring>
 
 static_assert(sizeof(float) == 4, "CalibrationStore assumes 32-bit IEEE 754 floats");
@@ -14,6 +15,31 @@ uint32_t CalibrationStore::slotAddress(SensorId id) const {
 }
 
 static constexpr uint8_t MAX_SENSOR_ID = 2; // MAG = 2 is the highest
+
+bool CalibrationStore::isCalibrationSane(const CalibrationData& data) {
+    auto finite = [](float v) { return std::isfinite(v); };
+    if (!finite(data.offsetX) || !finite(data.offsetY) || !finite(data.offsetZ) ||
+        !finite(data.scaleX) || !finite(data.scaleY) || !finite(data.scaleZ)) {
+        return false;
+    }
+
+    // Broad but practical guard rails for persisted calibration values.
+    constexpr float kMaxOffset = 10000.0f;
+    if (std::fabs(data.offsetX) > kMaxOffset ||
+        std::fabs(data.offsetY) > kMaxOffset ||
+        std::fabs(data.offsetZ) > kMaxOffset) {
+        return false;
+    }
+
+    constexpr float kMinScale = 0.1f;
+    constexpr float kMaxScale = 10.0f;
+    if (data.scaleX < kMinScale || data.scaleX > kMaxScale ||
+        data.scaleY < kMinScale || data.scaleY > kMaxScale ||
+        data.scaleZ < kMinScale || data.scaleZ > kMaxScale) {
+        return false;
+    }
+    return true;
+}
 
 uint32_t CalibrationStore::crc32(const uint8_t* data, size_t len) {
     // CRC-32 (ISO 3309 / ITU-T V.42)
@@ -32,6 +58,7 @@ uint32_t CalibrationStore::crc32(const uint8_t* data, size_t len) {
 
 bool CalibrationStore::save(SensorId id, const CalibrationData& data) {
     if (static_cast<uint8_t>(id) > MAX_SENSOR_ID) return false;
+    if (!isCalibrationSane(data)) return false;
     uint8_t buf[SLOT_SIZE];
 
     // Magic
@@ -65,7 +92,14 @@ bool CalibrationStore::load(SensorId id, CalibrationData& data) {
     if (storedCrc != computedCrc) return false;
 
     std::memcpy(&data, buf + 4, sizeof(CalibrationData));
+    if (!isCalibrationSane(data)) return false;
     return true;
+}
+
+bool CalibrationStore::loadOrDefault(SensorId id, CalibrationData& data, const CalibrationData& defaults) {
+    if (load(id, data)) return true;
+    data = defaults;
+    return false;
 }
 
 bool CalibrationStore::isValid(SensorId id) {

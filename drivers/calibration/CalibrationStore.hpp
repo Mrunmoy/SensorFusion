@@ -30,6 +30,7 @@ public:
 
     bool save(SensorId id, const CalibrationData& data);
     bool load(SensorId id, CalibrationData& data);
+    bool loadOrDefault(SensorId id, CalibrationData& data, const CalibrationData& defaults);
     bool isValid(SensorId id);
     bool reset(SensorId id);
 
@@ -38,6 +39,7 @@ public:
     void apply(const CalibrationData& cal, MagData& m) const;
 
     static uint32_t crc32(const uint8_t* data, size_t len);
+    static bool isCalibrationSane(const CalibrationData& data);
 
 private:
     INvStore& nv_;

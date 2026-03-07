@@ -38,7 +38,7 @@ Current `CalibrationStore` is minimal. Needs to be completed for all sensors req
 - [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
 - [ ] **Barometer calibration** — sea-level pressure reference for BMP180, LPS22DF
 - [ ] **Auto-calibrate on first boot** — if no stored calibration exists, run calibration routine and persist
-- [ ] **Calibration validation** — sanity-check loaded params, fall back to defaults if corrupt
+- [x] **Calibration validation** — sanity checks added for saved/loaded params, with `loadOrDefault` fallback support
 
 ---
 
