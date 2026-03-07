@@ -1,4 +1,5 @@
 #include "SensorFactoryTests.hpp"
+#include <cstring>
 
 namespace sf {
 
@@ -40,6 +41,38 @@ TestResult I2CSensorDataTest::run() {
     if (!fn_(ctx_, &reason)) {
         return {name_, TestStatus::FAIL, reason ? reason : "data check failed"};
     }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
+I2CBusRoundTripTest::I2CBusRoundTripTest(const char* testName, II2CBus& bus, uint8_t address,
+                                         const uint8_t* writeBuf, size_t writeLen,
+                                         const uint8_t* expectedReadBuf, size_t readLen)
+    : name_(testName), bus_(bus), address_(address), writeBuf_(writeBuf), writeLen_(writeLen),
+      expectedReadBuf_(expectedReadBuf), readLen_(readLen)
+{}
+
+TestResult I2CBusRoundTripTest::run() {
+    if (!writeBuf_ || !expectedReadBuf_ || writeLen_ == 0 || readLen_ == 0) {
+        return {name_, TestStatus::SKIPPED, "invalid round-trip config"};
+    }
+
+    if (!bus_.rawWrite(address_, writeBuf_, writeLen_)) {
+        return {name_, TestStatus::FAIL, "I2C rawWrite failed"};
+    }
+
+    uint8_t readBuf[16] = {};
+    if (readLen_ > sizeof(readBuf)) {
+        return {name_, TestStatus::SKIPPED, "read length too large"};
+    }
+
+    if (!bus_.rawRead(address_, readBuf, readLen_)) {
+        return {name_, TestStatus::FAIL, "I2C rawRead failed"};
+    }
+
+    if (std::memcmp(readBuf, expectedReadBuf_, readLen_) != 0) {
+        return {name_, TestStatus::FAIL, "I2C round-trip mismatch"};
+    }
+
     return {name_, TestStatus::PASS, nullptr};
 }
 

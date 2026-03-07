@@ -205,3 +205,75 @@ TEST(FactoryIntegration, MultiSensorProbe) {
     EXPECT_EQ(runner.passCount(), 3u);
     EXPECT_EQ(runner.failCount(), 0u);
 }
+
+// --- I2C bus round-trip tests ---
+
+TEST(I2CBusRoundTripTest, RoundTripSuccess) {
+    MockI2CBus bus;
+    const uint8_t writePayload[2] = {0xAA, 0x55};
+    const uint8_t expectedRead[3] = {0x10, 0x20, 0x30};
+
+    EXPECT_CALL(bus, rawWrite(0x44, _, 2))
+        .WillOnce([](uint8_t, const uint8_t* data, size_t len) {
+            return len == 2 && data[0] == 0xAA && data[1] == 0x55;
+        });
+    EXPECT_CALL(bus, rawRead(0x44, _, 3))
+        .WillOnce([](uint8_t, uint8_t* data, size_t len) {
+            if (len != 3) return false;
+            data[0] = 0x10;
+            data[1] = 0x20;
+            data[2] = 0x30;
+            return true;
+        });
+
+    sf::I2CBusRoundTripTest test("i2c roundtrip", bus, 0x44, writePayload, 2, expectedRead, 3);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
+}
+
+TEST(I2CBusRoundTripTest, WriteFailurePropagates) {
+    MockI2CBus bus;
+    const uint8_t writePayload[1] = {0x01};
+    const uint8_t expectedRead[1] = {0x00};
+
+    EXPECT_CALL(bus, rawWrite(0x44, _, 1)).WillOnce(Return(false));
+
+    sf::I2CBusRoundTripTest test("i2c roundtrip", bus, 0x44, writePayload, 1, expectedRead, 1);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "I2C rawWrite failed");
+}
+
+TEST(I2CBusRoundTripTest, ReadFailurePropagates) {
+    MockI2CBus bus;
+    const uint8_t writePayload[1] = {0x01};
+    const uint8_t expectedRead[2] = {0x12, 0x34};
+
+    EXPECT_CALL(bus, rawWrite(0x44, _, 1)).WillOnce(Return(true));
+    EXPECT_CALL(bus, rawRead(0x44, _, 2)).WillOnce(Return(false));
+
+    sf::I2CBusRoundTripTest test("i2c roundtrip", bus, 0x44, writePayload, 1, expectedRead, 2);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "I2C rawRead failed");
+}
+
+TEST(I2CBusRoundTripTest, DataMismatchFails) {
+    MockI2CBus bus;
+    const uint8_t writePayload[1] = {0x99};
+    const uint8_t expectedRead[2] = {0x12, 0x34};
+
+    EXPECT_CALL(bus, rawWrite(0x44, _, 1)).WillOnce(Return(true));
+    EXPECT_CALL(bus, rawRead(0x44, _, 2))
+        .WillOnce([](uint8_t, uint8_t* data, size_t len) {
+            if (len != 2) return false;
+            data[0] = 0x12;
+            data[1] = 0x00;
+            return true;
+        });
+
+    sf::I2CBusRoundTripTest test("i2c roundtrip", bus, 0x44, writePayload, 1, expectedRead, 2);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "I2C round-trip mismatch");
+}

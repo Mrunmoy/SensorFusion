@@ -42,4 +42,24 @@ private:
     void* ctx_;
 };
 
+// Generic I2C bus round-trip test: raw write command + raw read response check
+class I2CBusRoundTripTest : public IFactoryTest {
+public:
+    I2CBusRoundTripTest(const char* testName, II2CBus& bus, uint8_t address,
+                        const uint8_t* writeBuf, size_t writeLen,
+                        const uint8_t* expectedReadBuf, size_t readLen);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    II2CBus& bus_;
+    uint8_t address_;
+    const uint8_t* writeBuf_;
+    size_t writeLen_;
+    const uint8_t* expectedReadBuf_;
+    size_t readLen_;
+};
+
 } // namespace sf
