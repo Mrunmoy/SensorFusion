@@ -28,7 +28,18 @@ Frame size is fixed at `30` bytes.
 - Delivery stats:
   - sent count
   - retry count
-  - dropped count
+- dropped count
+
+For compile-time dispatch (no function-pointer call in hot path), use:
+
+- `MocapBleTransportT<NotifierPolicy>`
+
+`NotifierPolicy` contract:
+
+- `bool valid() const`
+- `bool operator()(const uint8_t* data, size_t len) const`
+
+The runtime wrapper `MocapBleTransport` remains available for integration convenience and is implemented on top of the same core logic.
 
 ## Integration Point (nRF52 Example)
 

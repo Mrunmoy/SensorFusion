@@ -63,6 +63,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Define performance vs battery operating profiles and wire mode selection in example
 - [ ] Add BLE transport implementation (NUS/custom GATT) for quaternion frames
 - [x] Add BLE packet contract + retry/MTU transport helper (`MocapBleTransport`) with unit tests
+- [x] Refactor BLE transport to compile-time policy core (`MocapBleTransportT<Notifier>`) with runtime wrapper compatibility
 - [ ] Add node calibration command flow (stationary/T-pose triggers)
 - [ ] Add timestamp sync protocol with central node
 - [ ] Add battery and health telemetry frame
@@ -99,3 +100,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 7.1 complete: Added `MocapNodePipeline` middleware slice with tests and updated nRF52 motion-tracker example for LSM6DSO + BMM350 + LPS22DF dual-bus architecture (2026-03-07)
 - [x] Phase 7.2 complete: Added mocap body node map and power/runtime profile docs; updated nRF52 example with selectable `PERFORMANCE` and `BATTERY` node modes (2026-03-07)
 - [x] Phase 7.3 complete: Added BLE quaternion packet contract doc and `MocapBleTransport` (MTU guard, retry, drop/sent stats) with host-side tests and nRF example hook (`sf_mocap_ble_notify`) (2026-03-07)
+- [x] Phase 7.4 complete: Refactored BLE transport to policy-based compile-time core with branch-likely hints and added template-path tests; preserved existing runtime API (2026-03-07)

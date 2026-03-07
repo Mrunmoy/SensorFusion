@@ -1,5 +1,6 @@
 #include "MocapBleTransport.hpp"
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace sf {
 namespace {
@@ -25,6 +26,16 @@ bool notifyStub(const uint8_t* data, size_t len, void* context) {
     }
     return true;
 }
+
+struct InlineNotifier {
+    CallbackContext* ctx = nullptr;
+
+    bool valid() const { return ctx != nullptr; }
+
+    bool operator()(const uint8_t* data, size_t len) const {
+        return notifyStub(data, len, ctx);
+    }
+};
 
 TEST(MocapBleTransportTest, RequiredMtuMatchesQuaternionFrame) {
     EXPECT_EQ(MocapBleTransport::QUATERNION_FRAME_BYTES, 30u);
@@ -98,6 +109,33 @@ TEST(MocapBleTransportTest, NullCallbackDrops) {
     EXPECT_FALSE(tx.sendQuaternion(1, 1u, Quaternion{}));
     EXPECT_EQ(tx.sentCount(), 0u);
     EXPECT_EQ(tx.droppedCount(), 1u);
+}
+
+TEST(MocapBleTransportTest, PolicyTransportUsesCompileTimeNotifier) {
+    CallbackContext ctx{};
+    InlineNotifier notifier{&ctx};
+    MocapBleTransportT<InlineNotifier> tx(notifier);
+
+    static_assert(!std::is_pointer<InlineNotifier>::value, "Policy notifier should be value type");
+
+    EXPECT_TRUE(tx.canSendQuaternion());
+    EXPECT_TRUE(tx.sendQuaternion(3, 77u, Quaternion{1.0f, 0.0f, 0.0f, 0.0f}));
+    EXPECT_EQ(ctx.calls, 1);
+    EXPECT_EQ(tx.sentCount(), 1u);
+}
+
+TEST(MocapBleTransportTest, PolicyTransportRetryWorks) {
+    CallbackContext ctx{};
+    ctx.failBeforeSuccess = 2;
+    InlineNotifier notifier{&ctx};
+    MocapBleTransportConfig cfg{};
+    cfg.maxRetries = 3;
+    MocapBleTransportT<InlineNotifier> tx(notifier, cfg);
+
+    EXPECT_TRUE(tx.sendQuaternion(3, 77u, Quaternion{}));
+    EXPECT_EQ(ctx.calls, 3);
+    EXPECT_EQ(tx.retryCount(), 2u);
+    EXPECT_EQ(tx.droppedCount(), 0u);
 }
 
 } // namespace
