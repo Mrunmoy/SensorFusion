@@ -60,10 +60,10 @@ flowchart TD
     <h2>Class Boundary Map</h2>
     <div class="mermaid">
 classDiagram
-  class II2CBus { <<interface>> }
-  class ISPIBus { <<interface>> }
-  class IAdcChannel { <<interface>> }
-  class IDelayProvider { <<interface>> }
+  class II2CBus
+  class ISPIBus
+  class IAdcChannel
+  class IDelayProvider
 
   class LSM6DSO
   class BMM350
@@ -75,16 +75,16 @@ classDiagram
   class NrfTwimBus
   class StmI2CBus
 
-  II2CBus <|.. EspI2CBus
-  II2CBus <|.. NrfTwimBus
-  II2CBus <|.. StmI2CBus
+  EspI2CBus --> II2CBus
+  NrfTwimBus --> II2CBus
+  StmI2CBus --> II2CBus
 
-  II2CBus <.. LSM6DSO
-  II2CBus <.. BMM350
-  II2CBus <.. LPS22DF
-  IDelayProvider <.. LSM6DSO
-  IDelayProvider <.. BMM350
-  IDelayProvider <.. LPS22DF
+  LSM6DSO --> II2CBus
+  BMM350 --> II2CBus
+  LPS22DF --> II2CBus
+  LSM6DSO --> IDelayProvider
+  BMM350 --> IDelayProvider
+  LPS22DF --> IDelayProvider
 
   LSM6DSO --> SensorHub
   BMM350 --> SensorHub

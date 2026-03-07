@@ -45,7 +45,6 @@ classDiagram
   }
 
   class NotifierPolicy {
-    <<interface>>
     +valid() bool
     +notify(data,len) bool
   }
@@ -65,7 +64,7 @@ classDiagram
 
   MocapBleTransportT_Notifier --> FrameCodec
   MocapBleTransport --> MocapBleTransportT_Notifier
-  NotifierPolicy <|.. MocapBleTransportT_Notifier
+  MocapBleTransportT_Notifier --> NotifierPolicy
     </div>
 
     <h2>Send Sequence</h2>

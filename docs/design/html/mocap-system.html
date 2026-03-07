@@ -61,16 +61,13 @@ flowchart LR
     <div class="mermaid">
 classDiagram
   class IAccelGyroSensor {
-    <<interface>>
     +readAccel
     +readGyro
   }
   class IMagSensor {
-    <<interface>>
     +readMag
   }
   class IBaroSensor {
-    <<interface>>
     +readPressureHPa
   }
   class MahonyAHRS {
@@ -91,9 +88,9 @@ classDiagram
     +hasPressure
   }
 
-  IAccelGyroSensor <.. MocapNodePipeline
-  IMagSensor <.. MocapNodePipeline
-  IBaroSensor <.. MocapNodePipeline
+  MocapNodePipeline --> IAccelGyroSensor
+  MocapNodePipeline --> IMagSensor
+  MocapNodePipeline --> IBaroSensor
   MocapNodePipeline --> MahonyAHRS
   MocapNodePipeline --> MocapNodeSample
     </div>
