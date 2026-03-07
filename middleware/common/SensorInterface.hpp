@@ -4,6 +4,12 @@
 
 namespace sf {
 
+class IAccelSensor {
+public:
+    virtual ~IAccelSensor() = default;
+    virtual bool readAccel(AccelData& out) = 0;
+};
+
 class IAccelGyroSensor {
 public:
     virtual ~IAccelGyroSensor() = default;

@@ -6,14 +6,20 @@ SensorHub::SensorHub(CalibrationStore* calStore)
     : cal_(calStore)
 {}
 
+void SensorHub::setAccel(IAccelSensor* accel) { accel_ = accel; }
 void SensorHub::setIMU(IAccelGyroSensor* imu) { imu_ = imu; }
 void SensorHub::setMag(IMagSensor* mag) { mag_ = mag; }
 void SensorHub::setBaro(IBaroSensor* baro) { baro_ = baro; }
 void SensorHub::setECG(AD8232* ecg) { ecg_ = ecg; }
 
 bool SensorHub::readAccel(AccelData& out) {
-    if (!imu_) return false;
-    if (!imu_->readAccel(out)) return false;
+    bool ok = false;
+    if (accel_) {
+        ok = accel_->readAccel(out);
+    } else if (imu_) {
+        ok = imu_->readAccel(out);
+    }
+    if (!ok) return false;
     if (cal_) {
         CalibrationData cal;
         if (cal_->load(SensorId::ACCEL, cal)) {
@@ -57,6 +63,7 @@ bool SensorHub::readECG(ECGSample& out) {
     return ecg_->sample(out);
 }
 
+bool SensorHub::hasAccel() const { return accel_ != nullptr || imu_ != nullptr; }
 bool SensorHub::hasIMU()  const { return imu_ != nullptr; }
 bool SensorHub::hasMag()  const { return mag_ != nullptr; }
 bool SensorHub::hasBaro() const { return baro_ != nullptr; }

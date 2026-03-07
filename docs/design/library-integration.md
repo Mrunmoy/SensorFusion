@@ -196,7 +196,7 @@ extern "C" void app_main() {
     // Middleware
     sf::MahonyAHRS ahrs;
     sf::SensorHub  hub;
-    hub.setAccelGyro(&imu);
+    hub.setIMU(&imu);
     hub.setMag(&mag);
 
     while (true) {

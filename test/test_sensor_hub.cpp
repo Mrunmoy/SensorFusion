@@ -12,6 +12,11 @@ public:
     MOCK_METHOD(bool, readTemperature, (float&), (override));
 };
 
+class MockAccel : public IAccelSensor {
+public:
+    MOCK_METHOD(bool, readAccel, (AccelData&), (override));
+};
+
 class MockMag : public IMagSensor {
 public:
     MOCK_METHOD(bool, readMag, (MagData&), (override));
@@ -26,6 +31,7 @@ public:
 
 TEST(SensorHubTest, NothingRegisteredByDefault) {
     SensorHub hub;
+    EXPECT_FALSE(hub.hasAccel());
     EXPECT_FALSE(hub.hasIMU());
     EXPECT_FALSE(hub.hasMag());
     EXPECT_FALSE(hub.hasBaro());
@@ -42,6 +48,42 @@ TEST(SensorHubTest, ReadGyroWithNoIMUReturnsFalse) {
     SensorHub hub;
     GyroData g;
     EXPECT_FALSE(hub.readGyro(g));
+}
+
+TEST(SensorHubTest, RegisterAccelOnlySensor) {
+    SensorHub hub;
+    MockAccel accel;
+    hub.setAccel(&accel);
+    EXPECT_TRUE(hub.hasAccel());
+    EXPECT_FALSE(hub.hasIMU());
+}
+
+TEST(SensorHubTest, ReadAccelFromAccelOnlySensor) {
+    SensorHub hub;
+    MockAccel accel;
+    hub.setAccel(&accel);
+
+    EXPECT_CALL(accel, readAccel(::testing::_))
+        .WillOnce([](AccelData& out) {
+            out = {0.1f, 0.2f, 0.3f};
+            return true;
+        });
+
+    AccelData a;
+    EXPECT_TRUE(hub.readAccel(a));
+    EXPECT_FLOAT_EQ(a.x, 0.1f);
+    EXPECT_FLOAT_EQ(a.y, 0.2f);
+    EXPECT_FLOAT_EQ(a.z, 0.3f);
+}
+
+TEST(SensorHubTest, AccelOnlyReadFailurePropagates) {
+    SensorHub hub;
+    MockAccel accel;
+    hub.setAccel(&accel);
+
+    EXPECT_CALL(accel, readAccel(::testing::_)).WillOnce(::testing::Return(false));
+    AccelData a;
+    EXPECT_FALSE(hub.readAccel(a));
 }
 
 TEST(SensorHubTest, ReadMagWithNoMagReturnsFalse) {
@@ -66,6 +108,7 @@ TEST(SensorHubTest, RegisterIMU) {
     SensorHub hub;
     MockAccelGyro imu;
     hub.setIMU(&imu);
+    EXPECT_TRUE(hub.hasAccel());
     EXPECT_TRUE(hub.hasIMU());
 }
 
@@ -169,6 +212,16 @@ TEST(SensorHubTest, UnregisterSensor) {
     EXPECT_FALSE(hub.hasIMU());
 }
 
+TEST(SensorHubTest, UnregisterAccelOnlySensor) {
+    SensorHub hub;
+    MockAccel accel;
+    hub.setAccel(&accel);
+    EXPECT_TRUE(hub.hasAccel());
+
+    hub.setAccel(nullptr);
+    EXPECT_FALSE(hub.hasAccel());
+}
+
 TEST(SensorHubTest, MixedSensorConfiguration) {
     SensorHub hub;
     MockAccelGyro imu;
@@ -183,6 +236,6 @@ TEST(SensorHubTest, MixedSensorConfiguration) {
 }
 
 TEST(SensorHubSizeTest, SmallFootprint) {
-    // 5 pointers = 40 bytes on 64-bit, 20 on 32-bit
-    EXPECT_LE(sizeof(SensorHub), 5 * sizeof(void*));
+    // 6 pointers = 48 bytes on 64-bit, 24 on 32-bit
+    EXPECT_LE(sizeof(SensorHub), 6 * sizeof(void*));
 }
