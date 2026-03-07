@@ -27,8 +27,8 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 
 ## Phase 3: Calibration Completion
 - [x] Magnetometer calibration (QMC5883L, BMM350, LIS3MDL)
-- [ ] Accelerometer calibration (MPU6050, LSM6DSO, ADXL345)
-- [ ] Gyroscope bias calibration (MPU6050, LSM6DSO)
+- [x] Accelerometer calibration (MPU6050, LSM6DSO, ADXL345)
+- [x] Gyroscope bias calibration (MPU6050, LSM6DSO)
 - [x] Barometer sea-level reference support (BMP180, LPS22DF)
 - [x] First-boot auto-calibration when no valid data exists
 - [x] Calibration validation + fallback defaults on corruption
@@ -68,3 +68,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 3.2 complete: Added BARO calibration slot support for persisted sea-level reference data (2026-03-07)
 - [x] Phase 3.3 complete: Added first-boot calibration seeding helper (`ensureInitialized`) with persistence tests (2026-03-07)
 - [x] Phase 3.4 complete: Added magnetometer hard-iron/soft-iron fitting helper (`CalibrationFitter`) with tests (2026-03-07)
+- [x] Phase 3.5 complete: Added accelerometer offset/scale and gyroscope bias fitters with tests (2026-03-07)

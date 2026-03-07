@@ -34,8 +34,8 @@ The current factory test code (`drivers/factory_test/`) is very rudimentary and 
 Current `CalibrationStore` is minimal. Needs to be completed for all sensors requiring calibration:
 
 - [x] **Magnetometer calibration** — added hard-iron/diagonal soft-iron fitter with host-side tests
-- [ ] **Accelerometer calibration** — offset + scale for MPU6050, LSM6DSO, ADXL345
-- [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
+- [x] **Accelerometer calibration** — added axis-sweep offset/scale fitter with host-side tests
+- [x] **Gyroscope calibration** — added stationary bias fitter with host-side tests
 - [x] **Barometer calibration** — added BARO calibration slot support for persisted sea-level pressure reference
 - [x] **Auto-calibrate on first boot** — added first-boot initialization helper to seed and persist defaults when missing
 - [x] **Calibration validation** — sanity checks added for saved/loaded params, with `loadOrDefault` fallback support
