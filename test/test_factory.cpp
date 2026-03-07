@@ -21,6 +21,16 @@ private:
     TestStatus status_;
 };
 
+class MockHumiditySensor : public IHumiditySensor {
+public:
+    MOCK_METHOD(bool, readHumidityPercent, (float&), (override));
+};
+
+class MockVocSensor : public IVocSensor {
+public:
+    MOCK_METHOD(bool, readVocRaw, (uint16_t&), (override));
+};
+
 TEST(FactoryTestRunnerTest, RunAllCollectsResults) {
     StubTest t1("test1", TestStatus::PASS);
     StubTest t2("test2", TestStatus::FAIL);
@@ -276,4 +286,80 @@ TEST(I2CBusRoundTripTest, DataMismatchFails) {
     TestResult r = test.run();
     EXPECT_EQ(r.status, TestStatus::FAIL);
     EXPECT_STREQ(r.detail, "I2C round-trip mismatch");
+}
+
+// --- Environmental validation tests ---
+
+TEST(HumidityPlausibilityTest, PassesForNominalHumidity) {
+    MockHumiditySensor humidity;
+    EXPECT_CALL(humidity, readHumidityPercent(_))
+        .WillOnce([](float& out) {
+            out = 45.0f;
+            return true;
+        });
+
+    sf::HumidityPlausibilityTest test("SHT40 plausibility", humidity, 5.0f, 95.0f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
+}
+
+TEST(HumidityPlausibilityTest, FailsWhenOutOfRange) {
+    MockHumiditySensor humidity;
+    EXPECT_CALL(humidity, readHumidityPercent(_))
+        .WillOnce([](float& out) {
+            out = 99.5f;
+            return true;
+        });
+
+    sf::HumidityPlausibilityTest test("SHT40 plausibility", humidity, 5.0f, 95.0f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "humidity out of range");
+}
+
+TEST(HumidityPlausibilityTest, FailsOnReadError) {
+    MockHumiditySensor humidity;
+    EXPECT_CALL(humidity, readHumidityPercent(_)).WillOnce(Return(false));
+
+    sf::HumidityPlausibilityTest test("SHT40 plausibility", humidity, 5.0f, 95.0f);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "humidity read failed");
+}
+
+TEST(VocBaselineTest, PassesForNominalVoc) {
+    MockVocSensor voc;
+    EXPECT_CALL(voc, readVocRaw(_))
+        .WillOnce([](uint16_t& out) {
+            out = 15000;
+            return true;
+        });
+
+    sf::VocBaselineTest test("SGP40 baseline", voc, 100, 60000);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::PASS);
+}
+
+TEST(VocBaselineTest, FailsWhenOutOfRange) {
+    MockVocSensor voc;
+    EXPECT_CALL(voc, readVocRaw(_))
+        .WillOnce([](uint16_t& out) {
+            out = 50;
+            return true;
+        });
+
+    sf::VocBaselineTest test("SGP40 baseline", voc, 100, 60000);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "VOC baseline out of range");
+}
+
+TEST(VocBaselineTest, FailsOnReadError) {
+    MockVocSensor voc;
+    EXPECT_CALL(voc, readVocRaw(_)).WillOnce(Return(false));
+
+    sf::VocBaselineTest test("SGP40 baseline", voc, 100, 60000);
+    TestResult r = test.run();
+    EXPECT_EQ(r.status, TestStatus::FAIL);
+    EXPECT_STREQ(r.detail, "VOC read failed");
 }
