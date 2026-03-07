@@ -90,6 +90,26 @@ Regenerate the GitHub Pages code-size dashboard locally:
 scripts/generate_size_report.sh build _site
 ```
 
+Cross-target smoke build validation (off-target, toolchain-level):
+
+```bash
+# ESP32 (ESP-IDF)
+source third_party/esp-idf/export.sh
+cd /mnt/data/sandbox/embedded/sf-validation/esp32-sensor-node
+idf.py set-target esp32
+idf.py build
+
+# nRF52840 (nix + arm-none-eabi)
+cd /mnt/data/sandbox/embedded/sf-validation/nrf52840-sensor-node
+nix develop --command bash -lc 'cmake -S . -B build-arm -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi-gcc.cmake && cmake --build build-arm -v'
+
+# STM32F407 (nix + arm-none-eabi)
+cd /mnt/data/sandbox/embedded/sf-validation/stm32f407zgt6-sensor-node
+nix develop --command bash -lc 'cmake -S . -B build-arm -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi-gcc.cmake && cmake --build build-arm -v'
+```
+
+See `docs/design/build-validation.md` for project layout and validation goals.
+
 ## Using as a Library
 
 Add SensorFusion to your project via `add_subdirectory`:

@@ -3,6 +3,7 @@
 #include "IGpioInput.hpp"
 #include "IGpioInterrupt.hpp"
 #include "IGpioOutput.hpp"
+#include "esp_attr.h"
 #include "driver/gpio.h"
 
 namespace sf {
@@ -32,7 +33,7 @@ public:
     bool disable() override;
 
 private:
-    static void IRAM_ATTR isrTrampoline(void* arg);
+    static void isrTrampoline(void* arg);
 
     gpio_num_t pin_;
     Callback cb_ = nullptr;

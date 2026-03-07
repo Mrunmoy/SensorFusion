@@ -48,6 +48,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Add one per-sensor example per platform with step-by-step usage docs
 
 ## Phase 6: Future / Stretch
+- [x] Off-target cross-build validation harness for ESP32/nRF52840/STM32F407
 - [ ] CI cross-compilation jobs for ARM targets
 - [ ] Power profiling hooks
 - [ ] Transport integration planning (BLE/WiFi)
@@ -80,3 +81,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 5.4 complete: Implemented nRF52 HAL backend (`platform/nrf52`) for TWIM/SPIM/GPIO/SAADC/Delay/FDS store (2026-03-07)
 - [x] Phase 5.5 complete: Added platform example skeleton apps and backend integration docs (`platform/README.md`, design doc, README updates) (2026-03-07)
 - [x] Phase 5.6 complete: Added per-sensor example matrix (`examples/sensors/`) for ESP32/STM32/nRF52 and step-by-step user guide (2026-03-07)
+- [x] Phase 6.1 complete: Added off-target cross-build validation projects and verified successful builds for ESP32 (ESP-IDF), nRF52840, and STM32F407 (nix + arm-none-eabi) (2026-03-07)
