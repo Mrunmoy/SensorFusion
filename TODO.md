@@ -11,7 +11,7 @@
 
 - [x] **ADXL345 middleware interface** — accel-only interface added via `IAccelSensor` and SensorHub support
 - [x] **Environmental sensor interfaces** — `IHumiditySensor` and `IVocSensor` added; SHT40/SGP40 now implement them
-- [ ] **SensorHub integration** — register new drivers (LIS3MDL already has `IMagSensor`; SHT40/SGP40 need new interfaces first)
+- [x] **SensorHub integration** — SensorHub now supports humidity/VOC registration and read paths via SHT40/SGP40 interfaces
 - [ ] **Version bump** — update `DRIVER_VERSION` in `Version.hpp` for new drivers (12 total now)
 - [ ] **Code size dashboard** — regenerate GitHub Pages report to include new `.o` files
 
