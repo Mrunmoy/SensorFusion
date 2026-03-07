@@ -46,13 +46,13 @@ flowchart TB
     <h2>CMake Selection Logic</h2>
     <div class="mermaid">
 flowchart TD
-  Start[Configure] --> Core[Build drivers + middleware]
-  Core --> Opt{SENSORFUSION_PLATFORM != none?}
-  Opt -->|yes| Plat[add_subdirectory(platform)]
-  Opt -->|no| Skip[No platform backend]
-  Plat --> Tst{SENSORFUSION_BUILD_TESTS?}
+  Start[Configure] --> Core[Build core libs]
+  Core --> Opt{Platform selected}
+  Opt -->|yes| Plat[Build platform backend]
+  Opt -->|no| Skip[Skip platform backend]
+  Plat --> Tst{Build tests}
   Skip --> Tst
-  Tst -->|yes| Tests[Build driver_tests]
+  Tst -->|yes| Tests[Build tests]
   Tst -->|no| End[Done]
   Tests --> End
     </div>

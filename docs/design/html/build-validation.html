@@ -42,19 +42,19 @@ flowchart LR
     <h2>Build Sequence</h2>
     <div class="mermaid">
 sequenceDiagram
-  participant Dev as Developer/CI
-  participant Esp as ESP32 Project
-  participant Nrf as nRF52 Project
-  participant Stm as STM32 Project
+  participant Dev
+  participant Esp
+  participant Nrf
+  participant Stm
 
-  Dev->>Esp: source export.sh; idf.py build
-  Esp-->>Dev: .bin / .elf build success
+  Dev->>Esp: run esp build
+  Esp-->>Dev: build pass
 
-  Dev->>Nrf: nix develop; cmake + ninja
-  Nrf-->>Dev: arm-none-eabi artifact
+  Dev->>Nrf: run nrf build
+  Nrf-->>Dev: build pass
 
-  Dev->>Stm: nix develop; cmake + ninja
-  Stm-->>Dev: arm-none-eabi artifact
+  Dev->>Stm: run stm build
+  Stm-->>Dev: build pass
     </div>
 
     <h2>Status Snapshot</h2>

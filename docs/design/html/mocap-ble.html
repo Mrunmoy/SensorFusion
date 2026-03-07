@@ -70,26 +70,26 @@ classDiagram
     <h2>Send Sequence</h2>
     <div class="mermaid">
 sequenceDiagram
-  participant Loop as Main Loop
-  participant Tx as MocapBleTransport
-  participant Codec as FrameCodec
-  participant Ble as sf_mocap_ble_notify
+  participant MainLoop
+  participant Transport
+  participant Codec
+  participant BleNotify
 
-  Loop->>Tx: sendQuaternion(nodeId, ts, q)
-  Tx->>Tx: check callback + MTU
-  alt invalid callback or MTU too small
-    Tx-->>Loop: false (drop++)
+  MainLoop->>Transport: send quaternion
+  Transport->>Transport: check callback and mtu
+  alt invalid callback or small mtu
+    Transport-->>MainLoop: drop
   else valid
-    Tx->>Codec: encodeQuaternion(...)
-    loop attempts 0..maxRetries
-      Tx->>Ble: notify(frame)
+    Transport->>Codec: encode frame
+    loop retry attempts
+      Transport->>BleNotify: notify frame
       alt notify success
-        Tx-->>Loop: true (sent++, retry+=attempt)
+        Transport-->>MainLoop: sent
       else notify failed
-        Tx->>Tx: retry
+        Transport->>Transport: retry
       end
     end
-    Tx-->>Loop: false (drop++)
+    Transport-->>MainLoop: drop
   end
     </div>
 

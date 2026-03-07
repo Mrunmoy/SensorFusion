@@ -98,24 +98,24 @@ classDiagram
     <h2>50 Hz Loop Sequence</h2>
     <div class="mermaid">
 sequenceDiagram
-  participant Loop as Main Loop
-  participant Pipe as MocapNodePipeline
-  participant Imu as LSM6DSO
-  participant Mag as BMM350
-  participant Baro as LPS22DF
-  participant Ahrs as MahonyAHRS
+  participant MainLoop
+  participant Pipeline
+  participant Imu
+  participant Mag
+  participant Baro
+  participant Ahrs
 
-  Loop->>Pipe: step
-  Pipe->>Imu: read accel and gyro
-  Pipe->>Mag: read mag
-  Pipe->>Baro: read pressure
-  alt mag sample available
-    Pipe->>Ahrs: update 9 dof
-  else mag missing
-    Pipe->>Ahrs: update 6 dof
+  MainLoop->>Pipeline: step
+  Pipeline->>Imu: read imu
+  Pipeline->>Mag: read mag
+  Pipeline->>Baro: read baro
+  alt mag ok
+    Pipeline->>Ahrs: update 9 dof
+  else mag fail
+    Pipeline->>Ahrs: update 6 dof
   end
-  Ahrs-->>Pipe: quaternion
-  Pipe-->>Loop: sample and flags
+  Ahrs-->>Pipeline: quaternion
+  Pipeline-->>MainLoop: sample
     </div>
 
     <h2>Operating Modes</h2>
