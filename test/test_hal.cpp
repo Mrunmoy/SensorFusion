@@ -6,6 +6,7 @@
 #include "MockGpioInterrupt.hpp"
 #include "MockSPIBus.hpp"
 #include "MockNvStore.hpp"
+#include "Version.hpp"
 
 using namespace sf::test;
 using ::testing::_;
@@ -168,4 +169,10 @@ TEST(HalNvStoreTest, CapacityReturnsSize) {
     MockNvStore nv;
     nv.useBackingStore(512);
     EXPECT_EQ(nv.capacity(), 512u);
+}
+
+TEST(HalVersionTest, DriverVersionMatchesExpectedRelease) {
+    EXPECT_EQ(sf::DRIVER_VERSION.major, 1);
+    EXPECT_EQ(sf::DRIVER_VERSION.minor, 1);
+    EXPECT_EQ(sf::DRIVER_VERSION.patch, 0);
 }

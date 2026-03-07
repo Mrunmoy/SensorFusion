@@ -12,7 +12,7 @@
 - [x] **ADXL345 middleware interface** — accel-only interface added via `IAccelSensor` and SensorHub support
 - [x] **Environmental sensor interfaces** — `IHumiditySensor` and `IVocSensor` added; SHT40/SGP40 now implement them
 - [x] **SensorHub integration** — SensorHub now supports humidity/VOC registration and read paths via SHT40/SGP40 interfaces
-- [ ] **Version bump** — update `DRIVER_VERSION` in `Version.hpp` for new drivers (12 total now)
+- [x] **Version bump** — `DRIVER_VERSION` updated to `1.1.0` for expanded driver set (12 total)
 - [ ] **Code size dashboard** — regenerate GitHub Pages report to include new `.o` files
 
 ---

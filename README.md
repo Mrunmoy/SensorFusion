@@ -136,7 +136,7 @@ No per-platform branches — that's a maintenance nightmare. The library compile
 
 | Component  | Version |
 |------------|---------|
-| Drivers    | 1.0.0   |
+| Drivers    | 1.1.0   |
 | Middleware | 1.0.0   |
 | Firmware   | 0.1.0   |
 
