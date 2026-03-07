@@ -106,4 +106,50 @@ private:
     BQ25101& charger_;
 };
 
+class AccelSanityRangeTest : public IFactoryTest {
+public:
+    AccelSanityRangeTest(const char* testName, IAccelSensor& sensor,
+                         float minAxisG, float maxAxisG,
+                         float minNormG, float maxNormG);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    IAccelSensor& sensor_;
+    float minAxisG_;
+    float maxAxisG_;
+    float minNormG_;
+    float maxNormG_;
+};
+
+class MagSanityRangeTest : public IFactoryTest {
+public:
+    MagSanityRangeTest(const char* testName, IMagSensor& sensor, float minAxisUt, float maxAxisUt);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    IMagSensor& sensor_;
+    float minAxisUt_;
+    float maxAxisUt_;
+};
+
+class BaroSanityRangeTest : public IFactoryTest {
+public:
+    BaroSanityRangeTest(const char* testName, IBaroSensor& sensor, float minHpa, float maxHpa);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    IBaroSensor& sensor_;
+    float minHpa_;
+    float maxHpa_;
+};
+
 } // namespace sf

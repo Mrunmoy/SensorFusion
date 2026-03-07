@@ -1,4 +1,5 @@
 #include "SensorFactoryTests.hpp"
+#include <cmath>
 #include <cstring>
 
 namespace sf {
@@ -131,6 +132,64 @@ TestResult BQ25101ChargePathTest::run() {
 
     if (inhibitedStatus == enabledStatus) {
         return {name_, TestStatus::FAIL, "CHG did not respond to TS toggle"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
+AccelSanityRangeTest::AccelSanityRangeTest(const char* testName, IAccelSensor& sensor,
+                                           float minAxisG, float maxAxisG,
+                                           float minNormG, float maxNormG)
+    : name_(testName), sensor_(sensor), minAxisG_(minAxisG), maxAxisG_(maxAxisG),
+      minNormG_(minNormG), maxNormG_(maxNormG)
+{}
+
+TestResult AccelSanityRangeTest::run() {
+    AccelData a{};
+    if (!sensor_.readAccel(a)) {
+        return {name_, TestStatus::FAIL, "accel read failed"};
+    }
+    if (a.x < minAxisG_ || a.x > maxAxisG_ ||
+        a.y < minAxisG_ || a.y > maxAxisG_ ||
+        a.z < minAxisG_ || a.z > maxAxisG_) {
+        return {name_, TestStatus::FAIL, "accel axis out of range"};
+    }
+    const float norm = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    if (norm < minNormG_ || norm > maxNormG_) {
+        return {name_, TestStatus::FAIL, "accel norm out of range"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
+MagSanityRangeTest::MagSanityRangeTest(const char* testName, IMagSensor& sensor,
+                                       float minAxisUt, float maxAxisUt)
+    : name_(testName), sensor_(sensor), minAxisUt_(minAxisUt), maxAxisUt_(maxAxisUt)
+{}
+
+TestResult MagSanityRangeTest::run() {
+    MagData m{};
+    if (!sensor_.readMag(m)) {
+        return {name_, TestStatus::FAIL, "mag read failed"};
+    }
+    if (m.x < minAxisUt_ || m.x > maxAxisUt_ ||
+        m.y < minAxisUt_ || m.y > maxAxisUt_ ||
+        m.z < minAxisUt_ || m.z > maxAxisUt_) {
+        return {name_, TestStatus::FAIL, "mag axis out of range"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
+BaroSanityRangeTest::BaroSanityRangeTest(const char* testName, IBaroSensor& sensor,
+                                         float minHpa, float maxHpa)
+    : name_(testName), sensor_(sensor), minHpa_(minHpa), maxHpa_(maxHpa)
+{}
+
+TestResult BaroSanityRangeTest::run() {
+    float hpa = 0.0f;
+    if (!sensor_.readPressureHPa(hpa)) {
+        return {name_, TestStatus::FAIL, "baro read failed"};
+    }
+    if (hpa < minHpa_ || hpa > maxHpa_) {
+        return {name_, TestStatus::FAIL, "baro pressure out of range"};
     }
     return {name_, TestStatus::PASS, nullptr};
 }
