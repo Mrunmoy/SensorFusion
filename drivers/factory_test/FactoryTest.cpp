@@ -1,6 +1,19 @@
 #include "FactoryTest.hpp"
+#include <cstdio>
+#include <cstring>
 
 namespace sf {
+
+namespace {
+const char* statusToStr(TestStatus status) {
+    switch (status) {
+        case TestStatus::PASS: return "PASS";
+        case TestStatus::FAIL: return "FAIL";
+        case TestStatus::SKIPPED: return "SKIPPED";
+    }
+    return "UNKNOWN";
+}
+} // namespace
 
 bool FactoryTestRunner::addTest(IFactoryTest* test) {
     if (!test || count_ >= MAX_TESTS) return false;
@@ -44,6 +57,28 @@ size_t FactoryTestRunner::runAll(TestReportCallback cb, void* ctx) {
         if (cb) cb(r, ctx);
     }
     return count_;
+}
+
+size_t formatFactoryReportCsv(const TestResult* results, size_t count, char* out, size_t outSize) {
+    if (!results || !out || outSize == 0) return 0;
+
+    size_t written = 0;
+    int n = std::snprintf(out, outSize, "name,status,detail\n");
+    if (n <= 0) return 0;
+    if (static_cast<size_t>(n) >= outSize) return 0;
+    written = static_cast<size_t>(n);
+
+    for (size_t i = 0; i < count; ++i) {
+        const char* detail = results[i].detail ? results[i].detail : "";
+        n = std::snprintf(out + written, outSize - written, "%s,%s,%s\n",
+                          results[i].name ? results[i].name : "",
+                          statusToStr(results[i].status),
+                          detail);
+        if (n <= 0) return 0;
+        if (static_cast<size_t>(n) >= outSize - written) return 0;
+        written += static_cast<size_t>(n);
+    }
+    return written;
 }
 
 } // namespace sf

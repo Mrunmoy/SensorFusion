@@ -48,4 +48,12 @@ private:
     size_t skippedCount_ = 0;
 };
 
+// Render a CSV report for manufacturing logs.
+// Format:
+// name,status,detail
+// MPU6050,PASS,
+// SHT40,FAIL,humidity out of range
+// Returns bytes written (excluding null terminator), or 0 if buffer is too small.
+size_t formatFactoryReportCsv(const TestResult* results, size_t count, char* out, size_t outSize);
+
 } // namespace sf

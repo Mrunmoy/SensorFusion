@@ -23,7 +23,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Add bus verification helpers (probe + raw read/write checks)
 - [x] Add environmental validation (SHT40 plausibility, SGP40 baseline)
 - [x] Add BQ25101 charge-path checks
-- [ ] Add structured pass/fail report format for manufacturing
+- [x] Add structured pass/fail report format for manufacturing
 
 ## Phase 3: Calibration Completion
 - [ ] Magnetometer calibration (QMC5883L, BMM350, LIS3MDL)
@@ -62,3 +62,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 2.1 complete: Added `I2CBusRoundTripTest` helper with host-side coverage for write/read/mismatch failures (2026-03-07)
 - [x] Phase 2.2 complete: Added humidity/VOC factory validation helpers for SHT40/SGP40 plausibility checks (2026-03-07)
 - [x] Phase 2.3 complete: Added BQ25101 charge-path TS toggle verification helper and tests (2026-03-07)
+- [x] Phase 2.4 complete: Added `formatFactoryReportCsv` output for manufacturing logs with test coverage (2026-03-07)
