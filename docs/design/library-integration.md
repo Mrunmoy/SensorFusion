@@ -24,6 +24,8 @@ Phase 5 is now implemented in-repo:
   - `examples/esp32-sensor-node/`
   - `examples/stm32-env-monitor/`
   - `examples/nrf52-motion-tracker/`
+- Per-sensor platform examples:
+  - `examples/sensors/<platform>/<sensor>/main.cpp`
 
 ## Proposed Structure
 

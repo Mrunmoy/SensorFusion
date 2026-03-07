@@ -45,6 +45,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] nRF52 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
 - [x] Add one end-to-end example per platform
 - [x] Document integration paths (submodule, FetchContent, custom HAL)
+- [x] Add one per-sensor example per platform with step-by-step usage docs
 
 ## Phase 6: Future / Stretch
 - [ ] CI cross-compilation jobs for ARM targets
@@ -78,3 +79,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 5.3 complete: Implemented STM32 HAL backend (`platform/stm32`) for I2C/SPI/GPIO/ADC/Delay/NV region store (2026-03-07)
 - [x] Phase 5.4 complete: Implemented nRF52 HAL backend (`platform/nrf52`) for TWIM/SPIM/GPIO/SAADC/Delay/FDS store (2026-03-07)
 - [x] Phase 5.5 complete: Added platform example skeleton apps and backend integration docs (`platform/README.md`, design doc, README updates) (2026-03-07)
+- [x] Phase 5.6 complete: Added per-sensor example matrix (`examples/sensors/`) for ESP32/STM32/nRF52 and step-by-step user guide (2026-03-07)

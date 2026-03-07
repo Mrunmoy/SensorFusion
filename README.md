@@ -146,6 +146,15 @@ examples/stm32-env-monitor/
 examples/nrf52-motion-tracker/
 ```
 
+Per-sensor platform examples are provided in:
+
+```
+examples/sensors/
+```
+
+Start here for step-by-step usage instructions:
+[examples/sensors/README.md](examples/sensors/README.md)
+
 ## Tests
 
 428 unit tests, all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.
