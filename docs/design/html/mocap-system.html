@@ -62,24 +62,24 @@ flowchart LR
 classDiagram
   class IAccelGyroSensor {
     <<interface>>
-    +readAccel(out)
-    +readGyro(out)
+    +readAccel
+    +readGyro
   }
   class IMagSensor {
     <<interface>>
-    +readMag(out)
+    +readMag
   }
   class IBaroSensor {
     <<interface>>
-    +readPressureHPa(out)
+    +readPressureHPa
   }
   class MahonyAHRS {
-    +update(accel, gyro, mag, dt)
-    +update6DOF(accel, gyro, dt)
-    +getQuaternion()
+    +update
+    +update6DOF
+    +getQuaternion
   }
   class MocapNodePipeline {
-    +step(out sample) bool
+    +step
   }
   class MocapNodeSample {
     +orientation
@@ -108,17 +108,17 @@ sequenceDiagram
   participant Baro as LPS22DF
   participant Ahrs as MahonyAHRS
 
-  Loop->>Pipe: step(sample)
-  Pipe->>Imu: readAccel/readGyro
-  Pipe->>Mag: readMag (best effort)
-  Pipe->>Baro: readPressureHPa (best effort)
+  Loop->>Pipe: step
+  Pipe->>Imu: read accel and gyro
+  Pipe->>Mag: read mag
+  Pipe->>Baro: read pressure
   alt mag sample available
-    Pipe->>Ahrs: update(9-DOF)
+    Pipe->>Ahrs: update 9 dof
   else mag missing
-    Pipe->>Ahrs: update6DOF
+    Pipe->>Ahrs: update 6 dof
   end
   Ahrs-->>Pipe: quaternion
-  Pipe-->>Loop: sample + flags
+  Pipe-->>Loop: sample and flags
     </div>
 
     <h2>Operating Modes</h2>

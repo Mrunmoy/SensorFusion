@@ -53,6 +53,19 @@ small, .muted { color: var(--muted); }
   padding: 14px;
 }
 
+.card-link {
+  display: block;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.card-link:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 

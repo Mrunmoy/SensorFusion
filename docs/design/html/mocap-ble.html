@@ -41,18 +41,18 @@ flowchart LR
     <div class="mermaid">
 classDiagram
   class FrameCodec {
-    +encodeQuaternion(...)
+    +encodeQuaternion()
   }
 
   class NotifierPolicy {
-    <<concept>>
+    <<interface>>
     +valid() bool
-    +operator()(data,len) bool
+    +notify(data,len) bool
   }
 
-  class MocapBleTransportT~Notifier~ {
+  class MocapBleTransportT_Notifier {
     +canSendQuaternion() bool
-    +sendQuaternion(nodeId, ts, q) bool
+    +sendQuaternion() bool
     +sentCount() uint32
     +retryCount() uint32
     +droppedCount() uint32
@@ -60,12 +60,12 @@ classDiagram
 
   class MocapBleTransport {
     +canSendQuaternion() bool
-    +sendQuaternion(nodeId, ts, q) bool
+    +sendQuaternion() bool
   }
 
-  MocapBleTransportT --> FrameCodec
-  MocapBleTransport --> MocapBleTransportT
-  NotifierPolicy <.. MocapBleTransportT
+  MocapBleTransportT_Notifier --> FrameCodec
+  MocapBleTransport --> MocapBleTransportT_Notifier
+  NotifierPolicy <|.. MocapBleTransportT_Notifier
     </div>
 
     <h2>Send Sequence</h2>
