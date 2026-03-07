@@ -14,7 +14,7 @@ struct Version {
 constexpr Version DRIVER_VERSION = {1, 1, 0};
 
 // Middleware library version
-constexpr Version MIDDLEWARE_VERSION = {1, 0, 0};
+constexpr Version MIDDLEWARE_VERSION = {1, 1, 0};
 
 // Firmware version (updated by application)
 constexpr Version FIRMWARE_VERSION = {0, 1, 0};

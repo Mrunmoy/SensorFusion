@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag matches VERSION
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION="$(head -n1 VERSION | tr -d '[:space:]')"
+          if [ "${TAG_VERSION}" != "${FILE_VERSION}" ]; then
+            echo "Tag v${TAG_VERSION} does not match VERSION ${FILE_VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ./build/test/driver_tests
+
+      - name: Package source artifact
+        run: |
+          chmod +x scripts/package_release.sh
+          scripts/package_release.sh "${GITHUB_REF_NAME}"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/SensorFusion-${{ github.ref_name }}.tar.gz
+            dist/SensorFusion-${{ github.ref_name }}.tar.gz.sha256

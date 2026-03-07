@@ -199,7 +199,23 @@ Interactive HTML design portal (Mermaid diagrams):
 | Component  | Version |
 |------------|---------|
 | Drivers    | 1.1.0   |
-| Middleware | 1.0.0   |
+| Middleware | 1.1.0   |
 | Firmware   | 0.1.0   |
 
 See `drivers/hal/Version.hpp`.
+
+Repository release version is tracked in `VERSION` and tagged as `vX.Y.Z`.
+
+## Release Artifacts
+
+Tagging `vX.Y.Z` on `main` triggers `.github/workflows/release.yml`, which:
+
+1. Validates tag/version match.
+2. Builds + runs tests.
+3. Publishes `dist/SensorFusion-vX.Y.Z.tar.gz` and `.sha256` as GitHub Release assets.
+
+Local packaging:
+
+```bash
+scripts/package_release.sh v1.1.0
+```

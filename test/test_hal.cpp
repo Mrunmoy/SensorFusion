@@ -176,3 +176,9 @@ TEST(HalVersionTest, DriverVersionMatchesExpectedRelease) {
     EXPECT_EQ(sf::DRIVER_VERSION.minor, 1);
     EXPECT_EQ(sf::DRIVER_VERSION.patch, 0);
 }
+
+TEST(HalVersionTest, MiddlewareVersionMatchesExpectedRelease) {
+    EXPECT_EQ(sf::MIDDLEWARE_VERSION.major, 1);
+    EXPECT_EQ(sf::MIDDLEWARE_VERSION.minor, 1);
+    EXPECT_EQ(sf::MIDDLEWARE_VERSION.patch, 0);
+}
