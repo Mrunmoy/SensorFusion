@@ -43,3 +43,8 @@ This document defines the body-worn mocap sensor node only. Central receiver and
 - Implement BLE sender in `examples/nrf52-motion-tracker/main.cpp` (`bleSend` placeholder).
 - Add calibration and stationary-detection commands.
 - Add timestamp synchronization with the central node.
+
+## Related Docs
+
+- Body placement and node IDs: `docs/design/mocap-node-map.md`
+- Runtime/power operating modes: `docs/design/mocap-power-profiles.md`

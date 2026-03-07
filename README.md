@@ -178,6 +178,10 @@ Start here for step-by-step usage instructions:
 Mocap wearable-node architecture (nRF52840 focus):
 [docs/design/mocap-node-architecture.md](docs/design/mocap-node-architecture.md)
 
+Mocap body map and power profiles:
+[docs/design/mocap-node-map.md](docs/design/mocap-node-map.md)
+[docs/design/mocap-power-profiles.md](docs/design/mocap-power-profiles.md)
+
 ## Tests
 
 428 unit tests, all passing. Tests use GoogleTest v1.14.0 with mock HAL implementations.

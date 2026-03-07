@@ -59,6 +59,8 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Add platform-agnostic mocap node pipeline in middleware (`MocapNodePipeline`)
 - [x] Add host-side unit tests for pipeline success/fallback behavior
 - [x] Update nRF52 motion-tracker example to dual-bus node architecture
+- [x] Define body node map (11/15/17+ variants) and fixed node ID plan
+- [x] Define performance vs battery operating profiles and wire mode selection in example
 - [ ] Add BLE transport implementation (NUS/custom GATT) for quaternion frames
 - [ ] Add node calibration command flow (stationary/T-pose triggers)
 - [ ] Add timestamp sync protocol with central node
@@ -94,3 +96,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 5.6 complete: Added per-sensor example matrix (`examples/sensors/`) for ESP32/STM32/nRF52 and step-by-step user guide (2026-03-07)
 - [x] Phase 6.1 complete: Added off-target cross-build validation projects and verified successful builds for ESP32 (ESP-IDF), nRF52840, and STM32F407 (nix + arm-none-eabi) (2026-03-07)
 - [x] Phase 7.1 complete: Added `MocapNodePipeline` middleware slice with tests and updated nRF52 motion-tracker example for LSM6DSO + BMM350 + LPS22DF dual-bus architecture (2026-03-07)
+- [x] Phase 7.2 complete: Added mocap body node map and power/runtime profile docs; updated nRF52 example with selectable `PERFORMANCE` and `BATTERY` node modes (2026-03-07)

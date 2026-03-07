@@ -11,7 +11,13 @@ extern const nrfx_twim_t g_twim1; // Shared MAG + BARO bus
 
 namespace {
 constexpr uint8_t kNodeId = 1;
-constexpr uint32_t kOutputPeriodUs = 20000; // 50 Hz
+
+enum class PowerMode {
+    PERFORMANCE,
+    BATTERY,
+};
+
+constexpr PowerMode kPowerMode = PowerMode::PERFORMANCE;
 
 bool bleSend(const uint8_t* data, size_t len) {
     (void)data;
@@ -27,24 +33,37 @@ int main() {
     sf::NrfDelay delay;
 
     sf::LSM6DSOConfig imuCfg{};
-    imuCfg.accelOdr = sf::LsmOdr::HZ_208;
-    imuCfg.gyroOdr = sf::LsmOdr::HZ_208;
+    sf::BMM350Config magCfg{};
+    sf::LPS22DFConfig baroCfg{};
+    sf::MocapNodePipeline::Config nodeCfg{};
+    uint32_t outputPeriodUs = 20000; // 50 Hz
+
+    if (kPowerMode == PowerMode::PERFORMANCE) {
+        imuCfg.accelOdr = sf::LsmOdr::HZ_208;
+        imuCfg.gyroOdr = sf::LsmOdr::HZ_208;
+        magCfg.odr = sf::Bmm350Odr::HZ_100;
+        baroCfg.odr = sf::LpsOdr::HZ_200;
+        nodeCfg.dtSeconds = 1.0f / 50.0f;
+        outputPeriodUs = 20000;
+    } else {
+        imuCfg.accelOdr = sf::LsmOdr::HZ_104;
+        imuCfg.gyroOdr = sf::LsmOdr::HZ_104;
+        magCfg.odr = sf::Bmm350Odr::HZ_50;
+        baroCfg.odr = sf::LpsOdr::HZ_25;
+        nodeCfg.dtSeconds = 1.0f / 40.0f;
+        outputPeriodUs = 25000;
+    }
+
     sf::LSM6DSO imu(imuBus, delay, imuCfg);
 
-    sf::BMM350Config magCfg{};
-    magCfg.odr = sf::Bmm350Odr::HZ_100;
     sf::BMM350 mag(envBus, delay, magCfg);
 
-    sf::LPS22DFConfig baroCfg{};
-    baroCfg.odr = sf::LpsOdr::HZ_200;
     sf::LPS22DF baro(envBus, delay, baroCfg);
 
     if (!imu.init() || !mag.init() || !baro.init()) {
         while (true) delay.delayMs(1000);
     }
 
-    sf::MocapNodePipeline::Config nodeCfg{};
-    nodeCfg.dtSeconds = 1.0f / 50.0f;
     nodeCfg.preferMag = true;
     sf::MocapNodePipeline pipeline(imu, &mag, &baro, nodeCfg);
 
@@ -56,7 +75,7 @@ int main() {
             delay.delayMs(1);
             continue;
         }
-        nextTickUs = nowUs + kOutputPeriodUs;
+        nextTickUs = nowUs + outputPeriodUs;
 
         sf::MocapNodeSample sample{};
         if (!pipeline.step(sample)) continue;
