@@ -13,7 +13,7 @@
 - [x] **Environmental sensor interfaces** — `IHumiditySensor` and `IVocSensor` added; SHT40/SGP40 now implement them
 - [x] **SensorHub integration** — SensorHub now supports humidity/VOC registration and read paths via SHT40/SGP40 interfaces
 - [x] **Version bump** — `DRIVER_VERSION` updated to `1.1.0` for expanded driver set (12 total)
-- [ ] **Code size dashboard** — regenerate GitHub Pages report to include new `.o` files
+- [x] **Code size dashboard** — regenerated report includes new objects (LIS3MDL, SHT40, SGP40, BQ25101)
 
 ---
 

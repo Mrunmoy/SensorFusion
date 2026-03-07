@@ -77,6 +77,12 @@ cmake -B build -DSENSORFUSION_BUILD_TESTS=OFF
 cmake --build build --parallel
 ```
 
+Regenerate the GitHub Pages code-size dashboard locally:
+
+```bash
+scripts/generate_size_report.sh build _site
+```
+
 ## Using as a Library
 
 Add SensorFusion to your project via `add_subdirectory`:
