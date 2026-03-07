@@ -2,7 +2,7 @@
 
 #include "II2CBus.hpp"
 #include "IGpioInterrupt.hpp"
-#include "SensorTypes.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -15,12 +15,12 @@ struct ADXL345Config {
     uint8_t   address = 0x53;
 };
 
-class ADXL345 {
+class ADXL345 : public IAccelSensor {
 public:
     explicit ADXL345(II2CBus& bus, const ADXL345Config& cfg = {});
 
     bool init();
-    bool readAccel(AccelData& out);
+    bool readAccel(AccelData& out) override;
 
     bool enableDataReadyInterrupt(IGpioInterrupt* intPin,
                                   IGpioInterrupt::Callback cb, void* ctx);

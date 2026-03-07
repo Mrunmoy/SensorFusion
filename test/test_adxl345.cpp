@@ -3,6 +3,7 @@
 #include "MockI2CBus.hpp"
 #include "MockGpioInterrupt.hpp"
 #include "ADXL345.hpp"
+#include <type_traits>
 
 using namespace sf;
 using namespace sf::test;
@@ -18,6 +19,9 @@ static constexpr uint8_t REG_INT_MAP  = 0x2F;
 static constexpr uint8_t REG_INT_SRC  = 0x30;
 static constexpr uint8_t REG_DATA_FMT = 0x31;
 static constexpr uint8_t REG_DATAX0   = 0x32;
+
+static_assert(std::is_base_of<IAccelSensor, ADXL345>::value,
+              "ADXL345 must satisfy accel middleware interface");
 
 class ADXL345Test : public ::testing::Test {
 protected:

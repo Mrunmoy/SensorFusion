@@ -11,6 +11,7 @@ public:
     explicit SensorHub(CalibrationStore* calStore = nullptr);
 
     // Register available sensors (nullptr = not present)
+    void setAccel(IAccelSensor* accel);
     void setIMU(IAccelGyroSensor* imu);
     void setMag(IMagSensor* mag);
     void setBaro(IBaroSensor* baro);
@@ -24,12 +25,14 @@ public:
     bool readECG(ECGSample& out);
 
     // Query capability
+    bool hasAccel() const;
     bool hasIMU() const;
     bool hasMag() const;
     bool hasBaro() const;
     bool hasECG() const;
 
 private:
+    IAccelSensor* accel_ = nullptr;
     IAccelGyroSensor* imu_ = nullptr;
     IMagSensor* mag_ = nullptr;
     IBaroSensor* baro_ = nullptr;
