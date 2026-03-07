@@ -1,0 +1,107 @@
+# SensorFusion — TODO Tracker
+
+## Status Legend
+- [ ] Not started
+- [~] In progress
+- [x] Done
+
+---
+
+## 1. Driver & Middleware Gaps
+
+- [ ] **ADXL345 middleware interface** — only driver without `IAccelGyroSensor` impl
+- [ ] **Environmental sensor interfaces** — define `IHumiditySensor`, `IVocSensor` (or similar) for SHT40/SGP40 so SensorHub can manage them
+- [ ] **SensorHub integration** — register new drivers (LIS3MDL already has `IMagSensor`; SHT40/SGP40 need new interfaces first)
+- [ ] **Version bump** — update `DRIVER_VERSION` in `Version.hpp` for new drivers (12 total now)
+- [ ] **Code size dashboard** — regenerate GitHub Pages report to include new `.o` files
+
+---
+
+## 2. Factory Test — Needs Major Work
+
+The current factory test code (`drivers/factory_test/`) is very rudimentary and nowhere near production-quality. Needs:
+
+- [ ] Comprehensive per-sensor self-test (WHO_AM_I, data sanity, range checks)
+- [ ] Communication bus verification (I2C probe, raw read/write round-trip)
+- [ ] Environmental sensor validation (SHT40 temp/hum plausibility, SGP40 VOC baseline)
+- [ ] BQ25101 charge path verification (CHG pin responds to TS toggle)
+- [ ] Test report output (pass/fail per sensor, structured for manufacturing)
+
+---
+
+## 3. Calibration — Incomplete
+
+Current `CalibrationStore` is minimal. Needs to be completed for all sensors requiring calibration:
+
+- [ ] **Magnetometer calibration** — hard-iron/soft-iron for QMC5883L, BMM350, LIS3MDL
+- [ ] **Accelerometer calibration** — offset + scale for MPU6050, LSM6DSO, ADXL345
+- [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
+- [ ] **Barometer calibration** — sea-level pressure reference for BMP180, LPS22DF
+- [ ] **Auto-calibrate on first boot** — if no stored calibration exists, run calibration routine and persist
+- [ ] **Calibration validation** — sanity-check loaded params, fall back to defaults if corrupt
+
+---
+
+## 4. EEPROM / NV Storage Driver
+
+Need a persistent storage driver for calibration parameters:
+
+- [ ] **EEPROM driver** — I2C EEPROM (e.g., AT24Cxx family) or SPI flash
+- [ ] **Wire up to `INvStore` HAL** — the interface exists but no real implementation yet
+- [ ] **CalibrationStore ↔ EEPROM** — load on boot, save after calibration
+- [ ] **Wear leveling** (if flash-based) — simple page-rotation scheme
+- [ ] **CRC protection** — detect corrupt stored data
+
+---
+
+## 5. Platform Layer — HAL Implementations
+
+> **Design doc:** [`docs/design/library-integration.md`](docs/design/library-integration.md)
+> — covers distribution model (submodule / FetchContent), CMake integration,
+> platform backend structure, and a full ESP32 example.
+
+All drivers are platform-agnostic behind HAL interfaces. Need real implementations.
+Ship optional `platform/<target>/` backends so users don't rewrite the same I2C/GPIO wrappers.
+Users who prefer custom HAL just implement the interfaces directly (Method 3 in design doc).
+
+### STM32 (e.g., STM32F4, STM32L4)
+- [ ] `II2CBus` → STM32 HAL I2C (register + raw command modes)
+- [ ] `ISPIBus` → STM32 HAL SPI
+- [ ] `IGpioInterrupt` → EXTI interrupt
+- [ ] `IGpioInput` / `IGpioOutput` → GPIO read/write
+- [ ] `IAdcChannel` → STM32 ADC (for AD8232)
+- [ ] `IDelayProvider` → SysTick / HAL_Delay + DWT cycle counter
+- [ ] `INvStore` → internal flash or external EEPROM
+
+### nRF52 (e.g., nRF52840)
+- [ ] `II2CBus` → nRF TWI/TWIM driver
+- [ ] `ISPIBus` → nRF SPIM driver
+- [ ] `IGpioInterrupt` → GPIOTE
+- [ ] `IGpioInput` / `IGpioOutput` → nRF GPIO
+- [ ] `IAdcChannel` → nRF SAADC
+- [ ] `IDelayProvider` → nrf_delay + RTC/timer
+- [ ] `INvStore` → FDS (Flash Data Storage) or external EEPROM
+
+### ESP32 (ESP-IDF)
+- [ ] `II2CBus` → ESP-IDF I2C master driver
+- [ ] `ISPIBus` → ESP-IDF SPI master
+- [ ] `IGpioInterrupt` → GPIO ISR
+- [ ] `IGpioInput` / `IGpioOutput` → gpio_get/set_level
+- [ ] `IAdcChannel` → ESP ADC oneshot/continuous
+- [ ] `IDelayProvider` → vTaskDelay / esp_timer
+- [ ] `INvStore` → NVS (Non-Volatile Storage) partition
+
+### Common platform concerns
+- [ ] RTOS integration (FreeRTOS mutex for bus sharing, Zephyr k_mutex, bare-metal critical sections)
+- [ ] DMA support for bulk sensor reads (optional, per platform)
+- [ ] Low-power modes (sleep/wake coordination with sensor duty cycling)
+- [ ] Board-specific pin mapping / config headers
+
+---
+
+## 6. Future Considerations
+
+- [ ] OTA firmware update support
+- [ ] BLE/WiFi transport layer for sensor data
+- [ ] Power profiling per platform
+- [ ] CI cross-compilation for target platforms (ARM toolchain in GitHub Actions)
