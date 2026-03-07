@@ -19,6 +19,7 @@ target_include_directories(sensorfusion_drivers PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/calibration
     ${CMAKE_CURRENT_SOURCE_DIR}/factory_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/nvstore
     ${CMAKE_CURRENT_SOURCE_DIR}/../middleware/common
 )
 
@@ -41,4 +42,5 @@ target_sources(sensorfusion_drivers PRIVATE
     calibration/CalibrationStore.cpp
     factory_test/FactoryTest.cpp
     factory_test/SensorFactoryTests.cpp
+    nvstore/AT24CxxNvStore.cpp
 )
