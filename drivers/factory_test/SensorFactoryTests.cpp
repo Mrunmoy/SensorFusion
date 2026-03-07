@@ -76,4 +76,36 @@ TestResult I2CBusRoundTripTest::run() {
     return {name_, TestStatus::PASS, nullptr};
 }
 
+HumidityPlausibilityTest::HumidityPlausibilityTest(const char* testName, IHumiditySensor& sensor,
+                                                   float minPercent, float maxPercent)
+    : name_(testName), sensor_(sensor), minPercent_(minPercent), maxPercent_(maxPercent)
+{}
+
+TestResult HumidityPlausibilityTest::run() {
+    float humidityPercent = 0.0f;
+    if (!sensor_.readHumidityPercent(humidityPercent)) {
+        return {name_, TestStatus::FAIL, "humidity read failed"};
+    }
+    if (humidityPercent < minPercent_ || humidityPercent > maxPercent_) {
+        return {name_, TestStatus::FAIL, "humidity out of range"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
+VocBaselineTest::VocBaselineTest(const char* testName, IVocSensor& sensor,
+                                 uint16_t minRaw, uint16_t maxRaw)
+    : name_(testName), sensor_(sensor), minRaw_(minRaw), maxRaw_(maxRaw)
+{}
+
+TestResult VocBaselineTest::run() {
+    uint16_t vocRaw = 0;
+    if (!sensor_.readVocRaw(vocRaw)) {
+        return {name_, TestStatus::FAIL, "VOC read failed"};
+    }
+    if (vocRaw < minRaw_ || vocRaw > maxRaw_) {
+        return {name_, TestStatus::FAIL, "VOC baseline out of range"};
+    }
+    return {name_, TestStatus::PASS, nullptr};
+}
+
 } // namespace sf

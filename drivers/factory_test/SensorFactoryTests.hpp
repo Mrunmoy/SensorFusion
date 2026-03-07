@@ -3,6 +3,7 @@
 #include "FactoryTest.hpp"
 #include "II2CBus.hpp"
 #include "IDelayProvider.hpp"
+#include "SensorInterface.hpp"
 #include <cstdint>
 
 namespace sf {
@@ -60,6 +61,36 @@ private:
     size_t writeLen_;
     const uint8_t* expectedReadBuf_;
     size_t readLen_;
+};
+
+class HumidityPlausibilityTest : public IFactoryTest {
+public:
+    HumidityPlausibilityTest(const char* testName, IHumiditySensor& sensor,
+                             float minPercent, float maxPercent);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    IHumiditySensor& sensor_;
+    float minPercent_;
+    float maxPercent_;
+};
+
+class VocBaselineTest : public IFactoryTest {
+public:
+    VocBaselineTest(const char* testName, IVocSensor& sensor,
+                    uint16_t minRaw, uint16_t maxRaw);
+
+    const char* name() const override { return name_; }
+    TestResult run() override;
+
+private:
+    const char* name_;
+    IVocSensor& sensor_;
+    uint16_t minRaw_;
+    uint16_t maxRaw_;
 };
 
 } // namespace sf
