@@ -30,7 +30,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [ ] Accelerometer calibration (MPU6050, LSM6DSO, ADXL345)
 - [ ] Gyroscope bias calibration (MPU6050, LSM6DSO)
 - [x] Barometer sea-level reference support (BMP180, LPS22DF)
-- [ ] First-boot auto-calibration when no valid data exists
+- [x] First-boot auto-calibration when no valid data exists
 - [x] Calibration validation + fallback defaults on corruption
 
 ## Phase 4: NV Storage Implementation
@@ -66,3 +66,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 2.5 complete: Added per-sensor accel/mag/baro sanity-range self-test helpers with host-side coverage (2026-03-07)
 - [x] Phase 3.1 complete: Added calibration sanity validation and `loadOrDefault` fallback behavior with tests (2026-03-07)
 - [x] Phase 3.2 complete: Added BARO calibration slot support for persisted sea-level reference data (2026-03-07)
+- [x] Phase 3.3 complete: Added first-boot calibration seeding helper (`ensureInitialized`) with persistence tests (2026-03-07)

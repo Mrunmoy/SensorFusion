@@ -32,6 +32,7 @@ public:
     bool save(SensorId id, const CalibrationData& data);
     bool load(SensorId id, CalibrationData& data);
     bool loadOrDefault(SensorId id, CalibrationData& data, const CalibrationData& defaults);
+    bool ensureInitialized(SensorId id, CalibrationData& data, const CalibrationData& initial);
     bool isValid(SensorId id);
     bool reset(SensorId id);
 

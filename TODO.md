@@ -37,7 +37,7 @@ Current `CalibrationStore` is minimal. Needs to be completed for all sensors req
 - [ ] **Accelerometer calibration** — offset + scale for MPU6050, LSM6DSO, ADXL345
 - [ ] **Gyroscope calibration** — bias removal for MPU6050, LSM6DSO
 - [x] **Barometer calibration** — added BARO calibration slot support for persisted sea-level pressure reference
-- [ ] **Auto-calibrate on first boot** — if no stored calibration exists, run calibration routine and persist
+- [x] **Auto-calibrate on first boot** — added first-boot initialization helper to seed and persist defaults when missing
 - [x] **Calibration validation** — sanity checks added for saved/loaded params, with `loadOrDefault` fallback support
 
 ---

@@ -207,3 +207,33 @@ TEST_F(CalibrationStoreTest, LoadOrDefaultFallsBackWhenCorrupt) {
     EXPECT_FLOAT_EQ(out.offsetX, defaults.offsetX);
     EXPECT_FLOAT_EQ(out.scaleX, defaults.scaleX);
 }
+
+TEST_F(CalibrationStoreTest, EnsureInitializedKeepsExistingCalibration) {
+    CalibrationStore store(nv);
+
+    CalibrationData existing;
+    existing.offsetX = 0.33f;
+    EXPECT_TRUE(store.save(SensorId::ACCEL, existing));
+
+    CalibrationData initial;
+    initial.offsetX = 9.99f;
+    CalibrationData out;
+    EXPECT_TRUE(store.ensureInitialized(SensorId::ACCEL, out, initial));
+    EXPECT_FLOAT_EQ(out.offsetX, 0.33f);
+}
+
+TEST_F(CalibrationStoreTest, EnsureInitializedSeedsMissingCalibrationOnFirstBoot) {
+    CalibrationStore store(nv);
+
+    CalibrationData initial;
+    initial.offsetX = 0.0f;
+    initial.scaleX = 1.05f;
+    CalibrationData out;
+
+    EXPECT_FALSE(store.ensureInitialized(SensorId::GYRO, out, initial));
+    EXPECT_FLOAT_EQ(out.scaleX, 1.05f);
+
+    CalibrationData loaded;
+    EXPECT_TRUE(store.load(SensorId::GYRO, loaded));
+    EXPECT_FLOAT_EQ(loaded.scaleX, 1.05f);
+}
