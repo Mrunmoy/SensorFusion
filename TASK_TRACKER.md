@@ -20,7 +20,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 
 ## Phase 2: Factory Test Overhaul
 - [ ] Add per-sensor self-test coverage (ID, sanity, range)
-- [ ] Add bus verification helpers (probe + raw read/write checks)
+- [x] Add bus verification helpers (probe + raw read/write checks)
 - [ ] Add environmental validation (SHT40 plausibility, SGP40 baseline)
 - [ ] Add BQ25101 charge-path checks
 - [ ] Add structured pass/fail report format for manufacturing
@@ -59,3 +59,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 1.3 complete: SensorHub humidity/VOC registration and read APIs with host-side tests (2026-03-07)
 - [x] Phase 1.4 complete: Bumped driver version to `1.1.0` with regression test coverage (2026-03-07)
 - [x] Phase 1.5 complete: Regenerated size dashboard and verified new objects appear in output (2026-03-07)
+- [x] Phase 2.1 complete: Added `I2CBusRoundTripTest` helper with host-side coverage for write/read/mismatch failures (2026-03-07)

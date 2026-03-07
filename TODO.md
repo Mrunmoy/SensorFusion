@@ -22,7 +22,7 @@
 The current factory test code (`drivers/factory_test/`) is very rudimentary and nowhere near production-quality. Needs:
 
 - [ ] Comprehensive per-sensor self-test (WHO_AM_I, data sanity, range checks)
-- [ ] Communication bus verification (I2C probe, raw read/write round-trip)
+- [x] Communication bus verification (I2C probe, raw read/write round-trip)
 - [ ] Environmental sensor validation (SHT40 temp/hum plausibility, SGP40 VOC baseline)
 - [ ] BQ25101 charge path verification (CHG pin responds to TS toggle)
 - [ ] Test report output (pass/fail per sensor, structured for manufacturing)
