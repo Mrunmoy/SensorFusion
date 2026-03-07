@@ -16,6 +16,7 @@ enum class SensorType : uint8_t {
     ECG        = 0x06,
     IMU_ALL    = 0x07,
     POSE       = 0x08,
+    NODE_HEALTH = 0x09,
 };
 
 class FrameCodec {
@@ -66,6 +67,15 @@ public:
                              float posX, float posY, float posZ,
                              const Quaternion& orientation,
                              uint8_t* buf, size_t bufLen);
+
+    static size_t encodeNodeHealth(uint8_t nodeId, uint64_t ts,
+                                   uint16_t batteryMv,
+                                   uint8_t batteryPercent,
+                                   uint8_t linkQuality,
+                                   uint16_t droppedFrames,
+                                   uint8_t calibrationState,
+                                   uint8_t flags,
+                                   uint8_t* buf, size_t bufLen);
 
     // Decode — fills header and copies payload bytes
     static bool decode(const uint8_t* buf, size_t len,

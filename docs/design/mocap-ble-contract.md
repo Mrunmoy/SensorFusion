@@ -12,6 +12,12 @@
 
 Frame size is fixed at `30` bytes.
 
+Optional health telemetry packet:
+
+- Type: `SensorType::NODE_HEALTH`
+- Encoded via `FrameCodec::encodeNodeHealth(...)`
+- Frame size: `22` bytes (`12` header + `8` payload + `2` CRC)
+
 ## GATT/ATT Requirements
 
 - Notification payload must carry full 30-byte frame.

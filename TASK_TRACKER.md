@@ -67,7 +67,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Publish HTML design portal with Mermaid architecture/class/sequence diagrams
 - [x] Add node calibration command flow (stationary/T-pose triggers)
 - [x] Add timestamp sync protocol with central node
-- [ ] Add battery and health telemetry frame
+- [x] Add battery and health telemetry frame
 - [ ] Add node-side logging/replay hooks for hard-motion tuning
 
 ## Progress Log
@@ -105,3 +105,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 7.5 complete: Added `docs/design/html/` portal with Mermaid diagrams for mocap system, BLE transport contract, integration model, and build validation (2026-03-07)
 - [x] Phase 7.6 complete: Added `MocapCalibrationFlow` command state machine (stationary/T-pose/reset) with host-side unit tests (2026-03-07)
 - [x] Phase 7.7 complete: Added `TimestampSync` filtered offset mapper with host-side tests and BLE contract sync-anchor doc update (2026-03-07)
+- [x] Phase 7.8 complete: Added `SensorType::NODE_HEALTH` frame encoding path and codec tests for battery/link/calibration telemetry (2026-03-07)

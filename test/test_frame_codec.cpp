@@ -159,6 +159,39 @@ TEST(FrameCodecTest, ECGRoundTrip) {
     EXPECT_EQ(mv, -150);
 }
 
+TEST(FrameCodecTest, NodeHealthRoundTrip) {
+    uint8_t buf[BUF_SIZE];
+    size_t len = FrameCodec::encodeNodeHealth(
+        0x0A, 4444ULL, 3890, 87, 92, 13, 2, 0xA5, buf, BUF_SIZE);
+    ASSERT_GT(len, 0u);
+
+    FrameCodec::FrameHeader hdr;
+    uint8_t payload[32];
+    size_t payloadLen = 0;
+    ASSERT_TRUE(FrameCodec::decode(buf, len, hdr, payload, payloadLen));
+
+    EXPECT_EQ(hdr.nodeId, 0x0A);
+    EXPECT_EQ(hdr.type, SensorType::NODE_HEALTH);
+    EXPECT_EQ(hdr.timestampUs, 4444ULL);
+    EXPECT_EQ(payloadLen, 8u);
+
+    uint16_t batteryMv = static_cast<uint16_t>(payload[0]) |
+        (static_cast<uint16_t>(payload[1]) << 8);
+    uint8_t batteryPercent = payload[2];
+    uint8_t linkQuality = payload[3];
+    uint16_t droppedFrames = static_cast<uint16_t>(payload[4]) |
+        (static_cast<uint16_t>(payload[5]) << 8);
+    uint8_t calibrationState = payload[6];
+    uint8_t flags = payload[7];
+
+    EXPECT_EQ(batteryMv, 3890u);
+    EXPECT_EQ(batteryPercent, 87u);
+    EXPECT_EQ(linkQuality, 92u);
+    EXPECT_EQ(droppedFrames, 13u);
+    EXPECT_EQ(calibrationState, 2u);
+    EXPECT_EQ(flags, 0xA5u);
+}
+
 // --- IMU_ALL round-trip ---
 
 TEST(FrameCodecTest, IMUAllRoundTrip) {

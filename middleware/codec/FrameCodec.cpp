@@ -213,6 +213,28 @@ size_t FrameCodec::encodePose(uint8_t nodeId, uint64_t ts,
     return finalize(buf, pos, bufLen);
 }
 
+size_t FrameCodec::encodeNodeHealth(uint8_t nodeId, uint64_t ts,
+                                    uint16_t batteryMv,
+                                    uint8_t batteryPercent,
+                                    uint8_t linkQuality,
+                                    uint16_t droppedFrames,
+                                    uint8_t calibrationState,
+                                    uint8_t flags,
+                                    uint8_t* buf, size_t bufLen) {
+    constexpr size_t PAYLOAD_SIZE = 8;
+    constexpr size_t FRAME_SIZE = HEADER_SIZE + PAYLOAD_SIZE + CRC_SIZE;
+    if (bufLen < FRAME_SIZE) return 0;
+
+    size_t pos = writeHeader(nodeId, SensorType::NODE_HEALTH, ts, buf);
+    writeU16LE(batteryMv, &buf[pos]); pos += 2;
+    buf[pos++] = batteryPercent;
+    buf[pos++] = linkQuality;
+    writeU16LE(droppedFrames, &buf[pos]); pos += 2;
+    buf[pos++] = calibrationState;
+    buf[pos++] = flags;
+    return finalize(buf, pos, bufLen);
+}
+
 // --- Decode ---
 bool FrameCodec::decode(const uint8_t* buf, size_t len,
                          FrameHeader& hdr,
