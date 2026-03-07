@@ -28,3 +28,4 @@ Valid values: `none` (default), `esp32`, `stm32`, `nrf52`.
 - Platform backends are optional and not built when `SENSORFUSION_PLATFORM=none`.
 - Host CI keeps using `none`; target SDK/toolchain builds should be done in platform-specific pipelines.
 - For interrupt adapters (`StmGpioInterrupt`, `NrfGpioInterrupt`), call `handleIrq(...)` from your ISR callback path.
+- Per-sensor example application loops are available under `examples/sensors/`.

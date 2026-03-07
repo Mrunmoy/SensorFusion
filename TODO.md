@@ -96,6 +96,7 @@ Users who prefer custom HAL just implement the interfaces directly (Method 3 in 
 - [ ] DMA support for bulk sensor reads (optional, per platform)
 - [ ] Low-power modes (sleep/wake coordination with sensor duty cycling)
 - [ ] Board-specific pin mapping / config headers
+- [x] Per-sensor example loops for each platform (`examples/sensors/<platform>/<sensor>/main.cpp`) with usage guide
 
 ---
 
