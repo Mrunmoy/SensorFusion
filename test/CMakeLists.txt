@@ -28,6 +28,7 @@ target_sources(driver_tests PRIVATE
     placeholder_test.cpp
     test_hal.cpp
     test_at24cxx_nvstore.cpp
+    test_wear_leveling_nvstore.cpp
     test_mpu6050.cpp
     test_qmc5883l.cpp
     test_bmp180.cpp

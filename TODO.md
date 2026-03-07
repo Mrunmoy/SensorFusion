@@ -49,7 +49,7 @@ Need a persistent storage driver for calibration parameters:
 - [x] **EEPROM driver** — I2C EEPROM backend implemented for AT24Cxx family (`AT24CxxNvStore`)
 - [x] **Wire up to `INvStore` HAL** — concrete `INvStore` implementation now available via `AT24CxxNvStore`
 - [x] **CalibrationStore ↔ EEPROM** — covered with host-side integration tests over AT24Cxx bus model
-- [ ] **Wear leveling** (if flash-based) — simple page-rotation scheme
+- [x] **Wear leveling** (if flash-based) — added `WearLevelingNvStore` with per-page slot rotation and CRC-validated latest-record selection
 - [x] **CRC protection** — corruption detection enforced in `CalibrationStore` and verified in AT24Cxx integration test
 
 ---

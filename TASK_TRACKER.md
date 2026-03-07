@@ -37,7 +37,7 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Implement EEPROM/flash-backed `INvStore` backend
 - [x] Wire `CalibrationStore` load/save to persistent backend
 - [x] Add corruption detection via CRC checks
-- [ ] Add basic wear-leveling strategy (if flash backend)
+- [x] Add basic wear-leveling strategy (if flash backend)
 
 ## Phase 5: Platform HAL Backends
 - [ ] ESP32 backend (`II2CBus`, `ISPIBus`, `IGpio*`, `IAdcChannel`, `IDelayProvider`, `INvStore`)
@@ -72,3 +72,4 @@ Execution order is intentional: deliver small vertical slices with TDD and docs 
 - [x] Phase 4.1 complete: Added AT24Cxx EEPROM-backed `INvStore` implementation and build wiring (`AT24CxxNvStore`) with unit tests (2026-03-07)
 - [x] Phase 4.2 complete: Added `CalibrationStore` integration tests against AT24Cxx backend with sampled bus behavior (2026-03-07)
 - [x] Phase 4.3 complete: Verified CRC corruption detection in AT24Cxx-backed calibration persistence tests (2026-03-07)
+- [x] Phase 4.4 complete: Added flash-style `WearLevelingNvStore` page-rotation backend with host-side tests for rotation, cross-page writes, and corruption fallback (2026-03-07)
