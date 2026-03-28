@@ -16,6 +16,12 @@ public:
     // 6-DOF update: accelerometer + gyroscope only
     void update6DOF(const AccelData& a, const GyroData& g, float dt);
 
+    // One-shot initialization from gravity + magnetic field.
+    void initFromSensors(const AccelData& a, const MagData& m);
+
+    // One-shot initialization from gravity only. Yaw remains zero.
+    void initFromAccel(const AccelData& a);
+
     Quaternion getQuaternion() const;
     void getEulerDeg(float& roll, float& pitch, float& yaw) const;
     void reset();

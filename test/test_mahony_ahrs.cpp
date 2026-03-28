@@ -142,6 +142,25 @@ TEST_F(MahonyAHRSTest, Update9DOFZeroMagFallsBackTo6DOF) {
     EXPECT_NEAR(q.norm(), 1.0f, 0.001f);
 }
 
+TEST_F(MahonyAHRSTest, InitFromSensorsSeedsLargeYawOffsetCloseToTruth) {
+    const Quaternion truth = Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 90.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+
+    ahrs.initFromSensors(
+        AccelData{bodyGravity.x, bodyGravity.y, bodyGravity.z},
+        MagData{bodyMag.x, bodyMag.y, bodyMag.z});
+
+    const Quaternion seeded = ahrs.getQuaternion();
+    const Quaternion relative = truth.conjugate().multiply(seeded);
+    const float clampedW = std::fmax(-1.0f, std::fmin(1.0f, relative.w));
+    const float errorDeg = std::fabs(2.0f * std::acos(clampedW) * 180.0f / 3.14159265358979323846f);
+
+    EXPECT_LT(errorDeg, 5.0f);
+}
+
 TEST_F(MahonyAHRSTest, GyroOnlyIntegration) {
     // Pure gyro rotation about Z at 90 deg/s for 1s = 90 degrees
     AccelData a{0.0f, 0.0f, 0.0f};  // zero accel → no correction

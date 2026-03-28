@@ -26,8 +26,16 @@ bool MocapNodePipeline::step(MocapNodeSample& out) {
     out.hasMag = false;
     if (cfg_.preferMag && mag_ != nullptr && mag_->readMag(out.mag)) {
         out.hasMag = true;
+        if (!ahrsInitialized_) {
+            ahrs_.initFromSensors(out.accel, out.mag);
+            ahrsInitialized_ = true;
+        }
         ahrs_.update(out.accel, out.gyro, out.mag, cfg_.dtSeconds);
     } else {
+        if (!ahrsInitialized_) {
+            ahrs_.initFromAccel(out.accel);
+            ahrsInitialized_ = true;
+        }
         ahrs_.update6DOF(out.accel, out.gyro, cfg_.dtSeconds);
     }
 

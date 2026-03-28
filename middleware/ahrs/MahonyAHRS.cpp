@@ -5,6 +5,29 @@ namespace sf {
 
 namespace {
     constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+    constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
+
+    Quaternion quaternionFromEulerDeg(float rollDeg, float pitchDeg, float yawDeg) {
+        const float halfRoll = rollDeg * DEG_TO_RAD * 0.5f;
+        const float halfPitch = pitchDeg * DEG_TO_RAD * 0.5f;
+        const float halfYaw = yawDeg * DEG_TO_RAD * 0.5f;
+
+        const float cr = std::cos(halfRoll);
+        const float sr = std::sin(halfRoll);
+        const float cp = std::cos(halfPitch);
+        const float sp = std::sin(halfPitch);
+        const float cy = std::cos(halfYaw);
+        const float sy = std::sin(halfYaw);
+
+        Quaternion q{
+            cr * cp * cy + sr * sp * sy,
+            sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy,
+            cr * cp * sy - sr * sp * cy,
+        };
+        q.normalize();
+        return q;
+    }
 }
 
 MahonyAHRS::MahonyAHRS(float kp, float ki)
@@ -141,6 +164,72 @@ void MahonyAHRS::update6DOF(const AccelData& a, const GyroData& g, float dt) {
     // Normalize quaternion
     q_.w = q0; q_.x = q1; q_.y = q2; q_.z = q3;
     q_.normalize();
+}
+
+void MahonyAHRS::initFromSensors(const AccelData& a, const MagData& m) {
+    const float accelNorm = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    if (accelNorm <= 0.0f) {
+        reset();
+        return;
+    }
+
+    const float ax = a.x / accelNorm;
+    const float ay = a.y / accelNorm;
+    const float az = a.z / accelNorm;
+
+    // The HelixDrift simulator uses gravity along +Z at identity. These
+    // formulas map the measured gravity vector into the filter's ZYX Euler
+    // convention.
+    const float roll = std::atan2(-ay, az);
+    const float pitch = std::atan2(ax, std::sqrt(ay * ay + az * az));
+
+    const float magNorm = std::sqrt(m.x * m.x + m.y * m.y + m.z * m.z);
+    if (magNorm <= 0.0f) {
+        q_ = quaternionFromEulerDeg(roll * RAD_TO_DEG, pitch * RAD_TO_DEG, 0.0f);
+        integralX_ = 0.0f;
+        integralY_ = 0.0f;
+        integralZ_ = 0.0f;
+        return;
+    }
+
+    const float mx = m.x / magNorm;
+    const float my = m.y / magNorm;
+    const float mz = m.z / magNorm;
+
+    const float sinRoll = std::sin(roll);
+    const float cosRoll = std::cos(roll);
+    const float sinPitch = std::sin(pitch);
+    const float cosPitch = std::cos(pitch);
+
+    const float mxLevel = mx * cosPitch + mz * sinPitch;
+    const float myLevel =
+        mx * sinRoll * sinPitch + my * cosRoll - mz * sinRoll * cosPitch;
+    const float yaw = std::atan2(myLevel, mxLevel);
+
+    q_ = quaternionFromEulerDeg(roll * RAD_TO_DEG, pitch * RAD_TO_DEG, yaw * RAD_TO_DEG);
+    integralX_ = 0.0f;
+    integralY_ = 0.0f;
+    integralZ_ = 0.0f;
+}
+
+void MahonyAHRS::initFromAccel(const AccelData& a) {
+    const float accelNorm = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    if (accelNorm <= 0.0f) {
+        reset();
+        return;
+    }
+
+    const float ax = a.x / accelNorm;
+    const float ay = a.y / accelNorm;
+    const float az = a.z / accelNorm;
+
+    const float roll = std::atan2(-ay, az);
+    const float pitch = std::atan2(ax, std::sqrt(ay * ay + az * az));
+
+    q_ = quaternionFromEulerDeg(roll * RAD_TO_DEG, pitch * RAD_TO_DEG, 0.0f);
+    integralX_ = 0.0f;
+    integralY_ = 0.0f;
+    integralZ_ = 0.0f;
 }
 
 Quaternion MahonyAHRS::getQuaternion() const {

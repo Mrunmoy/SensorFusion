@@ -1,5 +1,7 @@
 #include "MocapNodePipeline.hpp"
+#include "Quaternion.hpp"
 #include <gtest/gtest.h>
+#include <cmath>
 
 namespace sf {
 namespace {
@@ -110,6 +112,32 @@ TEST(MocapNodePipelineTest, PreferMagFalseSkipsMagRead) {
     MocapNodeSample sample{};
     EXPECT_TRUE(pipe.step(sample));
     EXPECT_FALSE(sample.hasMag);
+}
+
+TEST(MocapNodePipelineTest, FirstStepSeedsOrientationFromInitialSensorPose) {
+    FakeImu imu;
+    FakeMag mag;
+    FakeBaro baro;
+    const Quaternion truth = Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 90.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+    imu.accel = {bodyGravity.x, bodyGravity.y, bodyGravity.z};
+    mag.mag = {bodyMag.x, bodyMag.y, bodyMag.z};
+
+    MocapNodePipeline pipe(imu, &mag, &baro);
+
+    MocapNodeSample sample{};
+    ASSERT_TRUE(pipe.step(sample));
+    ASSERT_TRUE(sample.hasMag);
+
+    const Quaternion relative = truth.conjugate().multiply(sample.orientation);
+    const float clampedW = std::fmax(-1.0f, std::fmin(1.0f, relative.w));
+    const float errorDeg =
+        std::fabs(2.0f * std::acos(clampedW) * 180.0f / 3.14159265358979323846f);
+
+    EXPECT_LT(errorDeg, 10.0f);
 }
 
 } // namespace

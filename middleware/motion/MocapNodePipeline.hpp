@@ -41,6 +41,7 @@ private:
     IBaroSensor* baro_;
     Config cfg_;
     MahonyAHRS ahrs_;
+    bool ahrsInitialized_ = false;
 };
 
 } // namespace sf
