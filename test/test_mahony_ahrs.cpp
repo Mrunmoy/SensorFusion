@@ -6,6 +6,23 @@ using namespace sf;
 
 static constexpr float TOL = 1.0f;      // 1 degree tolerance for convergence tests
 static constexpr float TIGHT = 0.01f;   // tight tolerance
+static constexpr float PI_F = 3.14159265358979323846f;
+
+namespace {
+
+float angularErrorDeg(const Quaternion& truth, const Quaternion& actual) {
+    const Quaternion relative = truth.conjugate().multiply(actual);
+    const float clampedW = std::fmax(-1.0f, std::fmin(1.0f, relative.w));
+    return std::fabs(2.0f * std::acos(clampedW) * 180.0f / PI_F);
+}
+
+void expectSeedsCloseToTruth(MahonyAHRS& ahrs, const Quaternion& truth) {
+    const Quaternion seeded = ahrs.getQuaternion();
+    const float errorDeg = angularErrorDeg(truth, seeded);
+    EXPECT_LT(errorDeg, 1.0f);
+}
+
+}
 
 class MahonyAHRSTest : public ::testing::Test {
 protected:
@@ -28,9 +45,9 @@ TEST_F(MahonyAHRSTest, InitialEulerIsZero) {
     EXPECT_NEAR(y, 0.0f, TIGHT);
 }
 
-TEST_F(MahonyAHRSTest, GravityDownConvergesToIdentity6DOF) {
-    // Accelerometer reading gravity in -Z, gyro zero
-    AccelData a{0.0f, 0.0f, -1.0f};
+TEST_F(MahonyAHRSTest, GravityUpConvergesToIdentity6DOF) {
+    // Accelerometer reading gravity in +Z, gyro zero
+    AccelData a{0.0f, 0.0f, 1.0f};
     GyroData  g{0.0f, 0.0f, 0.0f};
     float dt = 0.01f;
 
@@ -56,14 +73,13 @@ TEST_F(MahonyAHRSTest, GravityInXDetectsRoll6DOF) {
 
     float roll, pitch, yaw;
     ahrs.getEulerDeg(roll, pitch, yaw);
-    // Gravity in +X means roll should be ~-90 or pitch ~90 depending on convention
-    // With ZYX convention and gravity normally in -Z, gravity in +X means pitch = +90
+    // With the project convention gravity is +Z at identity, so +X corresponds to -90 pitch.
     EXPECT_NEAR(pitch, -90.0f, 2.0f);
 }
 
 TEST_F(MahonyAHRSTest, GravityInYDetectsRoll6DOF) {
-    // Gravity along +Y
-    AccelData a{0.0f, 1.0f, 0.0f};
+    // Gravity along -Y for a positive roll rotation
+    AccelData a{0.0f, -1.0f, 0.0f};
     GyroData  g{0.0f, 0.0f, 0.0f};
     float dt = 0.01f;
 
@@ -73,7 +89,7 @@ TEST_F(MahonyAHRSTest, GravityInYDetectsRoll6DOF) {
 
     float roll, pitch, yaw;
     ahrs.getEulerDeg(roll, pitch, yaw);
-    EXPECT_NEAR(roll, 90.0f, 2.0f);
+    EXPECT_NEAR(roll, -90.0f, 2.0f);
 }
 
 TEST_F(MahonyAHRSTest, ResetRestoresIdentity) {
@@ -112,7 +128,7 @@ TEST_F(MahonyAHRSTest, ZeroAccelSkipsCorrection6DOF) {
 }
 
 TEST_F(MahonyAHRSTest, Update9DOFWithValidData) {
-    AccelData a{0.0f, 0.0f, -1.0f};
+    AccelData a{0.0f, 0.0f, 1.0f};
     GyroData  g{0.0f, 0.0f, 0.0f};
     MagData   m{20.0f, 0.0f, -40.0f};
 
@@ -129,7 +145,7 @@ TEST_F(MahonyAHRSTest, Update9DOFWithValidData) {
 }
 
 TEST_F(MahonyAHRSTest, Update9DOFZeroMagFallsBackTo6DOF) {
-    AccelData a{0.0f, 0.0f, -1.0f};
+    AccelData a{0.0f, 0.0f, 1.0f};
     GyroData  g{0.0f, 0.0f, 0.0f};
     MagData   m{0.0f, 0.0f, 0.0f};
 
@@ -161,6 +177,80 @@ TEST_F(MahonyAHRSTest, InitFromSensorsSeedsLargeYawOffsetCloseToTruth) {
     EXPECT_LT(errorDeg, 5.0f);
 }
 
+TEST_F(MahonyAHRSTest, InitFromSensorsSeedsSmallPitchOffsetCloseToTruth) {
+    const Quaternion truth = Quaternion::fromAxisAngle(0.0f, 1.0f, 0.0f, 15.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+
+    ahrs.initFromSensors(
+        AccelData{bodyGravity.x, bodyGravity.y, bodyGravity.z},
+        MagData{bodyMag.x, bodyMag.y, bodyMag.z});
+
+    expectSeedsCloseToTruth(ahrs, truth);
+}
+
+TEST_F(MahonyAHRSTest, InitFromSensorsSeedsSmallRollOffsetCloseToTruth) {
+    const Quaternion truth = Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, 15.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+
+    ahrs.initFromSensors(
+        AccelData{bodyGravity.x, bodyGravity.y, bodyGravity.z},
+        MagData{bodyMag.x, bodyMag.y, bodyMag.z});
+
+    expectSeedsCloseToTruth(ahrs, truth);
+}
+
+TEST_F(MahonyAHRSTest, InitFromSensorsMaintainsSmallPitchPoseUnderStationaryUpdates) {
+    const Quaternion truth = Quaternion::fromAxisAngle(0.0f, 1.0f, 0.0f, 15.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+
+    ahrs.initFromSensors(
+        AccelData{bodyGravity.x, bodyGravity.y, bodyGravity.z},
+        MagData{bodyMag.x, bodyMag.y, bodyMag.z});
+    ASSERT_NO_FATAL_FAILURE(expectSeedsCloseToTruth(ahrs, truth));
+
+    const AccelData accel{bodyGravity.x, bodyGravity.y, bodyGravity.z};
+    const MagData mag{bodyMag.x, bodyMag.y, bodyMag.z};
+    const GyroData gyro{0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 200; ++i) {
+        ahrs.update(accel, gyro, mag, 0.02f);
+    }
+
+    const float errorDeg = angularErrorDeg(truth, ahrs.getQuaternion());
+    EXPECT_LT(errorDeg, 5.0f);
+}
+
+TEST_F(MahonyAHRSTest, InitFromSensorsMaintainsSmallRollPoseUnderStationaryUpdates) {
+    const Quaternion truth = Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, 15.0f);
+    const Vec3 worldGravity{0.0f, 0.0f, 1.0f};
+    const Vec3 worldMag{20.0f, 0.0f, -40.0f};
+    const Vec3 bodyGravity = truth.rotateVector(worldGravity);
+    const Vec3 bodyMag = truth.rotateVector(worldMag);
+
+    ahrs.initFromSensors(
+        AccelData{bodyGravity.x, bodyGravity.y, bodyGravity.z},
+        MagData{bodyMag.x, bodyMag.y, bodyMag.z});
+    ASSERT_NO_FATAL_FAILURE(expectSeedsCloseToTruth(ahrs, truth));
+
+    const AccelData accel{bodyGravity.x, bodyGravity.y, bodyGravity.z};
+    const MagData mag{bodyMag.x, bodyMag.y, bodyMag.z};
+    const GyroData gyro{0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 200; ++i) {
+        ahrs.update(accel, gyro, mag, 0.02f);
+    }
+
+    const float errorDeg = angularErrorDeg(truth, ahrs.getQuaternion());
+    EXPECT_LT(errorDeg, 5.0f);
+}
+
 TEST_F(MahonyAHRSTest, GyroOnlyIntegration) {
     // Pure gyro rotation about Z at 90 deg/s for 1s = 90 degrees
     AccelData a{0.0f, 0.0f, 0.0f};  // zero accel → no correction
@@ -185,7 +275,7 @@ TEST(MahonyAHRSIntegralTest, IntegralFeedbackReducesBias) {
     MahonyAHRS ahrs(2.0f, 1.0f);  // Higher Ki for faster bias compensation
 
     // Simulate a gyro bias: reading 5 deg/s when actually stationary
-    AccelData a{0.0f, 0.0f, -1.0f};
+    AccelData a{0.0f, 0.0f, 1.0f};
     GyroData  g{0.0f, 0.0f, 5.0f};  // bias
 
     // Run for 60s simulated time to let integral term converge

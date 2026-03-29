@@ -28,6 +28,65 @@ namespace {
         q.normalize();
         return q;
     }
+
+    Vec3 normalizeOrZero(const Vec3& v) {
+        const float len = v.length();
+        if (len <= 0.0f) {
+            return {};
+        }
+        const float invLen = 1.0f / len;
+        return {v.x * invLen, v.y * invLen, v.z * invLen};
+    }
+
+    Vec3 cross(const Vec3& a, const Vec3& b) {
+        return {
+            a.y * b.z - a.z * b.y,
+            a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x,
+        };
+    }
+
+    Quaternion quaternionFromColumns(const Vec3& xAxis, const Vec3& yAxis, const Vec3& zAxis) {
+        const float m00 = xAxis.x;
+        const float m10 = xAxis.y;
+        const float m20 = xAxis.z;
+        const float m01 = yAxis.x;
+        const float m11 = yAxis.y;
+        const float m21 = yAxis.z;
+        const float m02 = zAxis.x;
+        const float m12 = zAxis.y;
+        const float m22 = zAxis.z;
+
+        Quaternion q{};
+        const float trace = m00 + m11 + m22;
+        if (trace > 0.0f) {
+            const float s = std::sqrt(trace + 1.0f) * 2.0f;
+            q.w = 0.25f * s;
+            q.x = (m21 - m12) / s;
+            q.y = (m02 - m20) / s;
+            q.z = (m10 - m01) / s;
+        } else if (m00 > m11 && m00 > m22) {
+            const float s = std::sqrt(1.0f + m00 - m11 - m22) * 2.0f;
+            q.w = (m21 - m12) / s;
+            q.x = 0.25f * s;
+            q.y = (m01 + m10) / s;
+            q.z = (m02 + m20) / s;
+        } else if (m11 > m22) {
+            const float s = std::sqrt(1.0f + m11 - m00 - m22) * 2.0f;
+            q.w = (m02 - m20) / s;
+            q.x = (m01 + m10) / s;
+            q.y = 0.25f * s;
+            q.z = (m12 + m21) / s;
+        } else {
+            const float s = std::sqrt(1.0f + m22 - m00 - m11) * 2.0f;
+            q.w = (m10 - m01) / s;
+            q.x = (m02 + m20) / s;
+            q.y = (m12 + m21) / s;
+            q.z = 0.25f * s;
+        }
+        q.normalize();
+        return q;
+    }
 }
 
 MahonyAHRS::MahonyAHRS(float kp, float ki)
@@ -61,31 +120,28 @@ void MahonyAHRS::update(const AccelData& a, const GyroData& g,
     }
     mx *= normM; my *= normM; mz *= normM;
 
-    // Reference direction of Earth's magnetic field (rotate mag into earth frame)
-    float hx = 2.0f * (mx * (0.5f - q2 * q2 - q3 * q3) +
-                        my * (q1 * q2 - q0 * q3) +
-                        mz * (q1 * q3 + q0 * q2));
-    float hy = 2.0f * (mx * (q1 * q2 + q0 * q3) +
-                        my * (0.5f - q1 * q1 - q3 * q3) +
-                        mz * (q2 * q3 - q0 * q1));
-    float bx = std::sqrt(hx * hx + hy * hy);
-    float bz = 2.0f * (mx * (q1 * q3 - q0 * q2) +
-                        my * (q2 * q3 + q0 * q1) +
-                        mz * (0.5f - q1 * q1 - q2 * q2));
+    // Estimate body-frame gravity and magnetic field using the same quaternion
+    // convention as Quaternion::rotateVector().
+    const Quaternion q{q0, q1, q2, q3};
+    const Vec3 gravityEstimate = q.rotateVector(Vec3{0.0f, 0.0f, 1.0f});
 
-    // Estimated direction of gravity and magnetic field
-    float vx = 2.0f * (q1 * q3 - q0 * q2);
-    float vy = 2.0f * (q0 * q1 + q2 * q3);
-    float vz = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
+    const Vec3 magBody{mx, my, mz};
+    const Vec3 magEarth = q.conjugate().rotateVector(magBody);
+    const float bx = std::sqrt(magEarth.x * magEarth.x + magEarth.y * magEarth.y);
+    const float bz = magEarth.z;
+    const Vec3 magEstimate = q.rotateVector(Vec3{bx, 0.0f, bz});
 
-    float wx = 2.0f * (bx * (0.5f - q2 * q2 - q3 * q3) + bz * (q1 * q3 - q0 * q2));
-    float wy = 2.0f * (bx * (q1 * q2 - q0 * q3) + bz * (q0 * q1 + q2 * q3));
-    float wz = 2.0f * (bx * (q0 * q2 + q1 * q3) + bz * (0.5f - q1 * q1 - q2 * q2));
+    const float vx = gravityEstimate.x;
+    const float vy = gravityEstimate.y;
+    const float vz = gravityEstimate.z;
+    const float wx = magEstimate.x;
+    const float wy = magEstimate.y;
+    const float wz = magEstimate.z;
 
     // Error is cross product between estimated and measured directions
-    float ex = (ay * vz - az * vy) + (my * wz - mz * wy);
-    float ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
-    float ez = (ax * vy - ay * vx) + (mx * wy - my * wx);
+    float ex = (ay * vz - az * vy) + (mz * wy - my * wz);
+    float ey = (az * vx - ax * vz) + (mx * wz - mz * wx);
+    float ez = (ax * vy - ay * vx) + (my * wx - mx * wy);
 
     // Apply integral feedback
     if (ki_ > 0.0f) {
@@ -128,10 +184,11 @@ void MahonyAHRS::update6DOF(const AccelData& a, const GyroData& g, float dt) {
     if (normA > 0.0f) {
         ax *= normA; ay *= normA; az *= normA;
 
-        // Estimated direction of gravity
-        float vx = 2.0f * (q1 * q3 - q0 * q2);
-        float vy = 2.0f * (q0 * q1 + q2 * q3);
-        float vz = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
+        const Quaternion q{q0, q1, q2, q3};
+        const Vec3 gravityEstimate = q.rotateVector(Vec3{0.0f, 0.0f, 1.0f});
+        const float vx = gravityEstimate.x;
+        const float vy = gravityEstimate.y;
+        const float vz = gravityEstimate.z;
 
         // Error is cross product between estimated and measured gravity
         float ex = ay * vz - az * vy;
@@ -173,40 +230,30 @@ void MahonyAHRS::initFromSensors(const AccelData& a, const MagData& m) {
         return;
     }
 
-    const float ax = a.x / accelNorm;
-    const float ay = a.y / accelNorm;
-    const float az = a.z / accelNorm;
-
-    // The HelixDrift simulator uses gravity along +Z at identity. These
-    // formulas map the measured gravity vector into the filter's ZYX Euler
-    // convention.
-    const float roll = std::atan2(-ay, az);
-    const float pitch = std::atan2(ax, std::sqrt(ay * ay + az * az));
+    const Vec3 bodyZ = normalizeOrZero(Vec3{a.x, a.y, a.z});
 
     const float magNorm = std::sqrt(m.x * m.x + m.y * m.y + m.z * m.z);
     if (magNorm <= 0.0f) {
-        q_ = quaternionFromEulerDeg(roll * RAD_TO_DEG, pitch * RAD_TO_DEG, 0.0f);
+        initFromAccel(a);
         integralX_ = 0.0f;
         integralY_ = 0.0f;
         integralZ_ = 0.0f;
         return;
     }
 
-    const float mx = m.x / magNorm;
-    const float my = m.y / magNorm;
-    const float mz = m.z / magNorm;
+    const Vec3 bodyMag = normalizeOrZero(Vec3{m.x, m.y, m.z});
+    const Vec3 bodyMagHorizontal = bodyMag - bodyZ * bodyMag.dot(bodyZ);
+    const Vec3 bodyX = normalizeOrZero(bodyMagHorizontal);
+    if (bodyX.lengthSq() <= 0.0f) {
+        initFromAccel(a);
+        integralX_ = 0.0f;
+        integralY_ = 0.0f;
+        integralZ_ = 0.0f;
+        return;
+    }
+    const Vec3 bodyY = normalizeOrZero(cross(bodyZ, bodyX));
 
-    const float sinRoll = std::sin(roll);
-    const float cosRoll = std::cos(roll);
-    const float sinPitch = std::sin(pitch);
-    const float cosPitch = std::cos(pitch);
-
-    const float mxLevel = mx * cosPitch + mz * sinPitch;
-    const float myLevel =
-        mx * sinRoll * sinPitch + my * cosRoll - mz * sinRoll * cosPitch;
-    const float yaw = std::atan2(myLevel, mxLevel);
-
-    q_ = quaternionFromEulerDeg(roll * RAD_TO_DEG, pitch * RAD_TO_DEG, yaw * RAD_TO_DEG);
+    q_ = quaternionFromColumns(bodyX, bodyY, bodyZ);
     integralX_ = 0.0f;
     integralY_ = 0.0f;
     integralZ_ = 0.0f;
